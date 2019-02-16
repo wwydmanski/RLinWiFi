@@ -34,11 +34,10 @@ Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-  uint32_t nodeNum = NodeList::GetNNodes ();
   float low = 0.0;
   float high = 10.0;
-  std::vector<uint32_t> shape = {nodeNum,};
-  std::string dtype = TypeNameGet<uint32_t> ();
+  std::vector<uint32_t> shape = {1,};
+  std::string dtype = TypeNameGet<float> ();
   Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace> (low, high, shape, dtype);
   NS_LOG_UNCOND ("MyGetObservationSpace: " << space);
   return space;
@@ -71,12 +70,16 @@ bool MyGetGameOver(void)
 /*
 Define extra info. Optional
 */
+uint64_t g_rxPktNum = 0;
 std::string MyGetExtraInfo(void)
 {
-  std::string myInfo = "linear-wireless | ";
-  myInfo += "CW: " + std::to_string(CW);
+  static float lastValue = 0.0;
+  float obs = g_rxPktNum - lastValue;
+  lastValue = g_rxPktNum;
 
+  std::string myInfo = std::to_string(obs*(1500-20-8-8)* 8.0 / 1000 / 1000);
   NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
+
   return myInfo;
 }
 
@@ -113,8 +116,11 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
   Ptr<OpenGymBoxContainer<float> > box = DynamicCast<OpenGymBoxContainer<float> >(action);
   std::vector<float> actionVector = box->GetData();
-  Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw",UintegerValue(actionVector.at(0)));
-  Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw",UintegerValue(actionVector.at(0)));
+
+  uint32_t new_cw = pow(2, actionVector.at(0));
+
+  Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(new_cw));
+  Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(new_cw));
   return true;
 }
 
@@ -127,7 +133,6 @@ void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInte
 /*
 Define reward function
 */
-uint64_t g_rxPktNum = 0;
 void DestRxPkt (Ptr<const Packet> packet)
 {
   NS_LOG_DEBUG ("Client received a packet of " << packet->GetSize () << " bytes");
@@ -136,11 +141,15 @@ void DestRxPkt (Ptr<const Packet> packet)
 
 float MyGetReward(void)
 {
-  static float lastValue = 0.0;
-  float reward = g_rxPktNum - lastValue;
-  lastValue = g_rxPktNum;
-  return reward*(1500-20-8-8)* 8.0 / 1000 / 1000;
-//   return reward;
+  static float last_new_packets = 0.0;
+  static float last_improvement = 0.0;
+  float new_packets = g_rxPktNum - last_new_packets;
+  float improv = new_packets - last_improvement;
+
+  last_new_packets = g_rxPktNum;
+  last_improvement = improv;
+
+  return improv*(1500-20-8-8)* 8.0 / 1000 / 1000;
 }
 
 /*
@@ -161,16 +170,21 @@ Ptr<WifiMacQueue> GetQueue(Ptr<Node> node)
 
 Ptr<OpenGymDataContainer> MyGetObservation(void)
 {
-  uint32_t nodeNum = NodeList::GetNNodes ();
-  std::vector<uint32_t> shape = {nodeNum,};
-  Ptr<OpenGymBoxContainer<uint32_t> > box = CreateObject<OpenGymBoxContainer<uint32_t> >(shape);
+  static float lastValue = 0.0;
+  float obs = g_rxPktNum - lastValue;
+  lastValue = g_rxPktNum;
 
-  for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
-    Ptr<Node> node = *i;
-    Ptr<WifiMacQueue> queue = GetQueue (node);
-    uint32_t value = queue->GetNPackets();
-    box->AddValue(value);
-  }
+  std::vector<uint32_t> shape = {1,};
+  Ptr<OpenGymBoxContainer<float> > box = CreateObject<OpenGymBoxContainer<float> >(shape);
+
+//   for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
+//     Ptr<Node> node = *i;
+//     Ptr<WifiMacQueue> queue = GetQueue (node);
+//     uint32_t value = queue->GetNPackets();
+//     box->AddValue(value);
+//   }
+
+  box->AddValue(obs*(1500-20-8-8)* 8.0 / 1000 / 1000);
 
   NS_LOG_UNCOND ("MyGetObservation: " << box);
   return box;
