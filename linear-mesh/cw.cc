@@ -113,15 +113,8 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
   Ptr<OpenGymBoxContainer<float> > box = DynamicCast<OpenGymBoxContainer<float> >(action);
   std::vector<float> actionVector = box->GetData();
-
-  uint32_t nodeNum = NodeList::GetNNodes ();
-  for (uint32_t i=0; i<nodeNum; i++)
-  {
-    Ptr<Node> node = NodeList::GetNode(i);
-    float cwSize = pow(2.0, actionVector.at(0));
-    SetCw(node, cwSize, cwSize);
-  }
-
+  Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw",UintegerValue(actionVector.at(0)));
+  Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw",UintegerValue(actionVector.at(0)));
   return true;
 }
 
@@ -187,7 +180,7 @@ int
 main (int argc, char *argv[])
 {
   bool verbose = false;
-  int nWifi = 1;
+  int nWifi = 5;
   bool tracing = false;
   bool useRts = false;
   int mcs = 11; 
@@ -197,7 +190,7 @@ main (int argc, char *argv[])
   int port = 1025;
   string outputCsv = "cw.csv";
   int rng = 1;
-  int warmup = 2;
+  int warmup = 1;
 
   uint32_t openGymPort = 5555;
   uint32_t simSeed = 1;
@@ -344,7 +337,6 @@ main (int argc, char *argv[])
   monitor = flowmon.InstallAll();
   monitor->SetAttribute ("StartTime", TimeValue (Seconds (warmup)));
 
-
   Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface> (openGymPort);
   openGymInterface->SetGetActionSpaceCb( MakeCallback (&MyGetActionSpace) );
   openGymInterface->SetGetObservationSpaceCb( MakeCallback (&MyGetObservationSpace) );
@@ -368,7 +360,6 @@ main (int argc, char *argv[])
   /* Contents of CSV output file
   Timestamp, CW, nWifi, RngRun, SourceIP, DestinationIP, Throughput
   */
-
   Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier> (flowmon.GetClassifier ());
   std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats ();
   for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin (); i != stats.end (); ++i) {
@@ -412,7 +403,6 @@ void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int
         OnOffHelper onOffHelper ("ns3::UdpSocketFactory", sinkSocket);
         onOffHelper.SetConstantRate (DataRate (offeredLoad + "Mbps"), 1500-20-8-8);
         sourceApplications.Add (onOffHelper.Install (fromNode)); //fromNode
-
 
         //PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", sinkSocket);
         // PacketSinkHelper packetSinkHelper ("ns3::UdpSocketFactory", sinkSocket);
