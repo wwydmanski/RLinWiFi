@@ -56,7 +56,7 @@ class Teacher:
                     experiment.log_metric("Round reward", reward, step=i*steps_per_ep+step)
                     experiment.log_metric("Per-ep reward", cumulative_reward, step=i*steps_per_ep+step)
                     experiment.log_metric("Megabytes sent", sent_mb, step=i*steps_per_ep+step)
-                    experiment.log_metric("Chosen CW", 2**actions[0][0], step=i*steps_per_ep+step)
+                    experiment.log_metric("Chosen CW", 2**(actions[0][0]*5+5), step=i*steps_per_ep+step)
 
                     t.set_postfix(mb_sent=f"{sent_mb:.2f} Mb")
 
@@ -66,7 +66,7 @@ class Teacher:
             experiment.log_metric("critic_loss", self.agent.critic_loss, step=i)
             experiment.log_metric("Speed", sent_mb/simTime, step=i)
 
-            print(f"Sent {sent_mb:.2f} Mb/s.\tMean per round: {sent_mb/steps_per_ep:.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
+            print(f"Sent {sent_mb:.2f} Mb/s.\tMean speed: {sent_mb/simTime:.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
             self.SCRIPT_RUNNING = False
 
         experiment.end()
