@@ -157,17 +157,17 @@ float MyGetReward(void)
     ticks += envStepTime;
 
     float res = g_rxPktNum - last_packets;
-    float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
+    // float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
 
-    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime);
+    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime)-0.5;
     last_packets = g_rxPktNum;
 
     if (ticks <= 2 * envStepTime)
         return 0.0;
 
-    NS_LOG_UNCOND("MyGetReward: " << speed_improv);
+    NS_LOG_UNCOND("MyGetReward: " << last_speed);
 
-    return speed_improv;
+    return last_speed;
 }
 
 /*

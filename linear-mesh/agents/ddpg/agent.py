@@ -5,12 +5,12 @@ from collections import namedtuple, deque
 import random
 import copy
 
-BUFFER_SIZE = int(1.5e3)  # replay buffer size
+BUFFER_SIZE = int(2e3)  # replay buffer size
 BATCH_SIZE = 64         # minibatch size
 GAMMA = 0.99            # discount factor
 TAU = 1e-3              # for soft update of target parameters
-LR_ACTOR = 3e-4         # learning rate of the actor
-LR_CRITIC = 2e-3        # learning rate of the critic
+LR_ACTOR = 1e-5         # learning rate of the actor
+LR_CRITIC = 4e-3        # learning rate of the critic
 UPDATE_EVERY = 4
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 

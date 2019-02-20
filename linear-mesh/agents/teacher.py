@@ -56,6 +56,7 @@ class Teacher:
                     experiment.log_metric("Round reward", reward, step=i*steps_per_ep+step)
                     experiment.log_metric("Per-ep reward", cumulative_reward, step=i*steps_per_ep+step)
                     experiment.log_metric("Megabytes sent", sent_mb, step=i*steps_per_ep+step)
+                    experiment.log_metric("Round megabytes sent", float(info), step=i*steps_per_ep+step)
                     experiment.log_metric("Chosen CW", 2**(actions[0][0]*5+5), step=i*steps_per_ep+step)
 
                     t.set_postfix(mb_sent=f"{sent_mb:.2f} Mb")
