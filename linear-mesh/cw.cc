@@ -25,6 +25,7 @@ NS_LOG_COMPONENT_DEFINE("OpenGym");
 
 void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad);
 void PopulateARPcache();
+void recordHistory();
 
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
@@ -66,19 +67,11 @@ Ptr<OpenGymSpace> MyGetActionSpace(void)
 }
 
 /*
-Define game over condition
-*/
-bool MyGetGameOver(void)
-{
-    bool isGameOver = false;
-    NS_LOG_UNCOND("MyGetGameOver: " << isGameOver);
-    return isGameOver;
-}
-
-/*
 Define extra info. Optional
 */
 uint64_t g_rxPktNum = 0;
+uint64_t g_txPktNum = 0;
+
 std::string MyGetExtraInfo(void)
 {
     static float lastValue = 0.0;
@@ -89,32 +82,6 @@ std::string MyGetExtraInfo(void)
     NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
 
     return myInfo;
-}
-
-bool SetCw(Ptr<Node> node, uint32_t cwMinValue = 0, uint32_t cwMaxValue = 0)
-{
-    CW = cwMinValue;
-    Ptr<NetDevice> dev = node->GetDevice(0);
-    Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice>(dev);
-    Ptr<WifiMac> wifi_mac = wifi_dev->GetMac();
-    Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac>(wifi_mac);
-    PointerValue ptr;
-    rmac->GetAttribute("Txop", ptr);
-    Ptr<Txop> txop = ptr.Get<Txop>();
-
-    // if both set to the same value then we have uniform backoff?
-    if (cwMinValue != 0)
-    {
-        NS_LOG_DEBUG("Set CW min: " << cwMinValue);
-        txop->SetMinCw(cwMinValue);
-    }
-
-    if (cwMaxValue != 0)
-    {
-        NS_LOG_DEBUG("Set CW max: " << cwMaxValue);
-        txop->SetMaxCw(cwMaxValue);
-    }
-    return true;
 }
 
 /*
@@ -134,21 +101,6 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     return true;
 }
 
-void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
-{
-    Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
-    openGymInterface->NotifyCurrentState();
-}
-
-/*
-Define reward function
-*/
-void DestRxPkt(Ptr<const Packet> packet)
-{
-    NS_LOG_DEBUG("Client received a packet of " << packet->GetSize() << " bytes");
-    g_rxPktNum++;
-}
-
 float MyGetReward(void)
 {
     static float ticks = 0.0;
@@ -159,7 +111,7 @@ float MyGetReward(void)
     float res = g_rxPktNum - last_packets;
     // float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
 
-    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime)-0.5;
+    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - 0.5;
     last_packets = g_rxPktNum;
 
     if (ticks <= 2 * envStepTime)
@@ -173,39 +125,6 @@ float MyGetReward(void)
 /*
 Collect observations
 */
-Ptr<WifiMacQueue> GetQueue(Ptr<Node> node)
-{
-    Ptr<NetDevice> dev = node->GetDevice(0);
-    Ptr<WifiNetDevice> wifi_dev = DynamicCast<WifiNetDevice>(dev);
-    Ptr<WifiMac> wifi_mac = wifi_dev->GetMac();
-    Ptr<RegularWifiMac> rmac = DynamicCast<RegularWifiMac>(wifi_mac);
-    PointerValue ptr;
-    rmac->GetAttribute("Txop", ptr);
-    Ptr<Txop> txop = ptr.Get<Txop>();
-    Ptr<WifiMacQueue> queue = txop->GetWifiMacQueue();
-    return queue;
-}
-
-void recordHistory()
-{
-    static float lastValue = 0.0;
-    static float calls = 0;
-    calls++;
-
-    float obs = g_rxPktNum - lastValue;
-    lastValue = g_rxPktNum;
-
-    history.push_front(obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
-    history.pop_back();
-
-    if (calls < history_length)
-        Simulator::Schedule(Seconds(envStepTime), &recordHistory);
-    else if(calls==history_length) {
-        lastValue = -obs;
-        g_rxPktNum = 0;
-    }
-}
-
 Ptr<OpenGymDataContainer> MyGetObservation()
 {
     //   static deque<float> history (history_length, 0.0);
@@ -216,17 +135,60 @@ Ptr<OpenGymDataContainer> MyGetObservation()
     };
     Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
-    //   for (NodeList::Iterator i = NodeList::Begin (); i != NodeList::End (); ++i) {
-    //     Ptr<Node> node = *i;
-    //     Ptr<WifiMacQueue> queue = GetQueue (node);
-    //     uint32_t value = queue->GetNPackets();
-    //     box->AddValue(value);
-    //   }
     for (uint32_t i = 0; i < history_length; i++)
         box->AddValue(history[i]);
 
     NS_LOG_UNCOND("MyGetObservation: " << box);
     return box;
+}
+
+bool MyGetGameOver(void)
+{
+    bool isGameOver = false;
+    return isGameOver;
+}
+
+void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
+{
+    Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    openGymInterface->NotifyCurrentState();
+}
+
+void recordHistory()
+{
+    static uint32_t last_rx = 0;
+    static uint32_t last_tx = 0;
+    static uint32_t calls = 0;
+    calls++;
+
+    uint32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
+    last_rx = g_rxPktNum;
+    last_tx = g_txPktNum;
+
+    history.push_front(errs);
+    history.pop_back();
+
+    if (calls < history_length)
+        Simulator::Schedule(Seconds(envStepTime), &recordHistory);
+    else if (calls == history_length)
+    {
+        // lastValue = -obs;
+        g_rxPktNum = 0;
+        g_txPktNum = 0;
+        last_rx = 0;
+        last_tx = 0;
+    }
+}
+
+void packetReceived(Ptr<const Packet> packet)
+{
+    NS_LOG_DEBUG("Client received a packet of " << packet->GetSize() << " bytes");
+    g_rxPktNum++;
+}
+
+void packetSent(Ptr<const Packet> packet)
+{
+    g_txPktNum++;
 }
 
 int main(int argc, char *argv[])
@@ -384,6 +346,8 @@ int main(int argc, char *argv[])
         installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad);
     }
 
+    Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx" , MakeCallback(&packetSent));
+
     PopulateARPcache();
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
@@ -459,6 +423,7 @@ void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int
     //OnOffHelper onOffHelper ("ns3::TcpSocketFactory", sinkSocket);
     OnOffHelper onOffHelper("ns3::UdpSocketFactory", sinkSocket);
     onOffHelper.SetConstantRate(DataRate(offeredLoad + "Mbps"), 1500 - 20 - 8 - 8);
+    // onOffHelper.TraceConnectWithoutContext("Tx", MakeCallback(&packetSent));
     sourceApplications.Add(onOffHelper.Install(fromNode)); //fromNode
 
     //PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", sinkSocket);
@@ -471,7 +436,7 @@ void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int
     sinkApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
 
     Ptr<UdpServer> udpServer = DynamicCast<UdpServer>(sinkApplications.Get(0));
-    udpServer->TraceConnectWithoutContext("Rx", MakeCallback(&DestRxPkt));
+    udpServer->TraceConnectWithoutContext("Rx", MakeCallback(&packetReceived));
 
     sourceApplications.Start(Seconds(1.0));
     sourceApplications.Stop(Seconds(simulationTime + 2 + envStepTime));

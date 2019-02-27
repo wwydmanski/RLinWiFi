@@ -19,7 +19,7 @@ class Teacher:
         self.num_agents = num_agents
         self.SCRIPT_RUNNING = True
 
-    def train(self, EPISODE_COUNT, simTime, stepTime, *tags):
+    def train(self, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
         steps_per_ep = int(simTime/stepTime)
         script_exec_command = f'../../waf --run "linear-mesh --simTime={simTime} --envStepTime={stepTime}"'
         experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
@@ -27,6 +27,8 @@ class Teacher:
 
         if tags is not None:
             experiment.add_tags(tags)
+        if parameters is not None:
+            experiment.log_parameters(parameters)
 
         experiment.log_parameter("Episode count", EPISODE_COUNT)
         experiment.log_parameter("Steps per episode", steps_per_ep)
@@ -58,13 +60,14 @@ class Teacher:
                     experiment.log_metric("Megabytes sent", sent_mb, step=i*steps_per_ep+step)
                     experiment.log_metric("Round megabytes sent", float(info), step=i*steps_per_ep+step)
                     experiment.log_metric("Chosen CW", 2**(actions[0][0]*5+5), step=i*steps_per_ep+step)
+                    experiment.log_metric("actor_loss", self.agent.actor_loss, step=i*steps_per_ep+step)
+                    experiment.log_metric("critic_loss", self.agent.critic_loss, step=i*steps_per_ep+step)
+
 
                     t.set_postfix(mb_sent=f"{sent_mb:.2f} Mb")
 
             self.agent.reset()
             experiment.log_metric("Cumulative reward", cumulative_reward, step=i)
-            experiment.log_metric("actor_loss", self.agent.actor_loss, step=i)
-            experiment.log_metric("critic_loss", self.agent.critic_loss, step=i)
             experiment.log_metric("Speed", sent_mb/simTime, step=i)
 
             print(f"Sent {sent_mb:.2f} Mb/s.\tMean speed: {sent_mb/simTime:.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")

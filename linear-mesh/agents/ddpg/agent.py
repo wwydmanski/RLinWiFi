@@ -5,37 +5,58 @@ from collections import namedtuple, deque
 import random
 import copy
 
-BUFFER_SIZE = int(2e3)  # replay buffer size
-BATCH_SIZE = 64         # minibatch size
-GAMMA = 0.99            # discount factor
-TAU = 1e-3              # for soft update of target parameters
-LR_ACTOR = 1e-5         # learning rate of the actor
-LR_CRITIC = 4e-3        # learning rate of the critic
-UPDATE_EVERY = 4
+# BUFFER_SIZE = int(2e3)  # replay buffer size
+# BATCH_SIZE = 64         # minibatch size
+# GAMMA = 0.99            # discount factor
+# TAU = 1e-3              # for soft update of target parameters
+# LR_ACTOR = 1e-5         # learning rate of the actor
+# LR_CRITIC = 4e-3        # learning rate of the critic
+# UPDATE_EVERY = 4
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+class Config:
+    def __init__(self, buffer_size=int(2e3), batch_size=64, gamma=0.99, tau=1e-3, lr_actor=1e-5, lr_critic=4e-3, update_every=4):
+        self.BUFFER_SIZE = buffer_size
+        self.BATCH_SIZE = batch_size
+        self.GAMMA = gamma
+        self.TAU = tau
+        self.LR_ACTOR = lr_actor
+        self.LR_CRITIC = lr_critic
+        self.UPDATE_EVERY = update_every
+
+
 class Agent:
-    def __init__(self, state_size, action_size, random_seed=42):
+    def __init__(self, state_size, action_size, config=Config(), random_seed=42):
+        self.config = config
+
         self.action_size = action_size
         self.noise = OUNoise(action_size, random_seed)
 
-        self.actor_local = Actor(state_size, action_size, random_seed).to(device)
-        self.actor_target = Actor(state_size, action_size, random_seed).to(device)
+        self.actor_local = Actor(
+            state_size, action_size, random_seed).to(device)
+        self.actor_target = Actor(
+            state_size, action_size, random_seed).to(device)
 
-        self.critic_local = Critic(state_size, action_size, random_seed).to(device)
-        self.critic_target = Critic(state_size, action_size, random_seed).to(device)
+        self.critic_local = Critic(
+            state_size, action_size, random_seed).to(device)
+        self.critic_target = Critic(
+            state_size, action_size, random_seed).to(device)
+
+        self.critic_loss = 0
+        self.actor_loss = 0
 
         # HARD update
         self.soft_update(self.actor_target, self.actor_target, 1.0)
         self.soft_update(self.critic_local, self.critic_target, 1.0)
 
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, random_seed)
+        self.memory = ReplayBuffer(
+            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, random_seed)
 
         self.actor_optimizer = torch.optim.Adam(
-            self.actor_local.parameters(), lr=LR_ACTOR)
+            self.actor_local.parameters(), lr=self.config.LR_ACTOR)
         self.critic_optimizer = torch.optim.Adam(
-            self.critic_local.parameters(), lr=LR_CRITIC)
+            self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
         self.episodes_passed = 1
@@ -60,7 +81,8 @@ class Agent:
         self.actor_local.train()
 
         if add_noise:
-            action_values += (self.noise.sample()-0.6)/np.sqrt(self.episodes_passed)
+            action_values += (self.noise.sample()-0.4) / \
+                np.sqrt(self.episodes_passed)
 
         return np.clip(action_values, -1, 1)
 
@@ -69,17 +91,17 @@ class Agent:
 
         self.t_step += 1
 
-        if self.t_step % UPDATE_EVERY == 0:
-            if len(self.memory) > BATCH_SIZE:
+        if self.t_step % self.config.UPDATE_EVERY == 0:
+            if len(self.memory) > self.config.BATCH_SIZE:
                 if self.notifications == 0:
                     print("------- STARTED TRAINING -------")
                     self.notifications = 1
-                elif self.notifications == 1 and len(self.memory) == BUFFER_SIZE:
+                elif self.notifications == 1 and len(self.memory) == self.config.BUFFER_SIZE:
                     print("------- MEMORY BUFFER FILLED -------")
                     self.notifications = -1
 
                 experiences = self.memory.sample()
-                self.learn(experiences, GAMMA)
+                self.learn(experiences, self.config.GAMMA)
 
     def learn(self, experiences, gamma):
         """Update value parameters using given batch of experience tuples
@@ -112,8 +134,9 @@ class Agent:
         self.actor_optimizer.step()
 
         # ------------------- update target network ------------------- #
-        self.soft_update(self.actor_local, self.actor_target, TAU)
-        self.soft_update(self.critic_local, self.critic_target, TAU)
+        self.soft_update(self.actor_local, self.actor_target, self.config.TAU)
+        self.soft_update(self.critic_local,
+                         self.critic_target, self.config.TAU)
 
     def soft_update(self, local_model, target_model, tau):
         """Soft update model parameters.
