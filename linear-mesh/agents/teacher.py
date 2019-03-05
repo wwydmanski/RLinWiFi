@@ -18,6 +18,7 @@ class Teacher:
         self.env = env
         self.num_agents = num_agents
         self.SCRIPT_RUNNING = True
+        self.CW = 16
 
     def train(self, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
         steps_per_ep = int(simTime/stepTime)
@@ -55,14 +56,20 @@ class Teacher:
 
                     sent_mb += float(info)
 
+                    if actions[0]==0:
+                        self.CW/=2
+                    elif actions[0]==2:
+                        self.CW*=2
+                    
+                    self.CW = max([16, min([1024, self.CW])])
+
                     experiment.log_metric("Round reward", reward, step=i*steps_per_ep+step)
                     experiment.log_metric("Per-ep reward", cumulative_reward, step=i*steps_per_ep+step)
                     experiment.log_metric("Megabytes sent", sent_mb, step=i*steps_per_ep+step)
                     experiment.log_metric("Round megabytes sent", float(info), step=i*steps_per_ep+step)
-                    experiment.log_metric("Chosen CW", 2**(actions[0][0]*5+5), step=i*steps_per_ep+step)
-                    experiment.log_metric("actor_loss", self.agent.actor_loss, step=i*steps_per_ep+step)
-                    experiment.log_metric("critic_loss", self.agent.critic_loss, step=i*steps_per_ep+step)
-
+                    experiment.log_metric("Chosen CW", self.CW, step=i*steps_per_ep+step)
+                    experiment.log_metrics(self.agent.get_loss(), step=i*steps_per_ep+step)
+                    # experiment.log_metric("critic_loss", self.agent.critic_loss, step=i*steps_per_ep+step)
 
                     t.set_postfix(mb_sent=f"{sent_mb:.2f} Mb")
 

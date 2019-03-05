@@ -17,6 +17,7 @@
 #include <ctime>   //timestampi
 #include <iomanip> // put_time
 #include <deque>
+#include <algorithm>
 
 using namespace std;
 using namespace ns3;
@@ -29,7 +30,7 @@ void recordHistory();
 
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
-uint32_t CW = 0;
+uint32_t CW = 16;
 uint32_t history_length = 10;
 
 deque<float> history(history_length, 0.0);
@@ -94,10 +95,19 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     std::vector<float> actionVector = box->GetData();
 
-    uint32_t new_cw = pow(2, actionVector.at(0) * 5 + 5);
+    // CW = pow(2, actionVector.at(0) * 5 + 5);
+    if(actionVector.at(0)==0)
+        CW /= 2;
+    else if(actionVector.at(0)==2)
+        CW *= 2;
+    
+    uint32_t min_cw = 16;
+    uint32_t max_cw = 1024;
 
-    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(new_cw));
-    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(new_cw));
+    CW = min(max_cw, max(CW, min_cw));
+
+    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
+    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     return true;
 }
 
@@ -165,7 +175,7 @@ void recordHistory()
     last_rx = g_rxPktNum;
     last_tx = g_txPktNum;
 
-    history.push_front(errs);
+    history.push_front(errs* (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     history.pop_back();
 
     if (calls < history_length)

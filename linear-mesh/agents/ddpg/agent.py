@@ -156,6 +156,9 @@ class Agent:
         self.noise.reset()
         self.episodes_passed += 1
 
+    def get_loss(self):
+        return {"actor_loss": self.actor_loss, "critic_loss": self.critic_loss}
+
 
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
