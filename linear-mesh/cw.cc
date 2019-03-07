@@ -33,6 +33,7 @@ double simulationTime = 10; //seconds
 uint32_t CW = 16;
 uint32_t history_length = 10;
 string type = "";
+bool non_zero_start = false;
 
 deque<float> history(history_length, 0.0);
 
@@ -188,10 +189,11 @@ void recordHistory()
     history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     history.pop_back();
 
-    if (calls < history_length)
+    if (calls < history_length && non_zero_start)
+    {
         Simulator::Schedule(Seconds(envStepTime), &recordHistory);
-
-    else if (calls == history_length)
+    }
+    else if (calls == history_length && non_zero_start)
     {
         // lastValue = -obs;
         g_rxPktNum = 0;
@@ -240,7 +242,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("simTime", "Simulation time in seconds. Default: 10s", simulationTime);
     cmd.AddValue("envStepTime", "Step time in seconds. Default: 0.1s", envStepTime);
     cmd.AddValue("agentType", "Type of agent actions, either DISCRETE or CONTINUOUS", type);
-
+    cmd.AddValue("nonZeroStart", "Start when hitory buffer is filled?", non_zero_start);
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Ns3Env parameters:");
@@ -388,10 +390,20 @@ int main(int argc, char *argv[])
     openGymInterface->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
     openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
-    Simulator::Schedule(Seconds(1.0), &recordHistory);
-    Simulator::Schedule(Seconds(2.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    int end_delay;
+    if (non_zero_start)
+    {
+        Simulator::Schedule(Seconds(1.0), &recordHistory);
+        Simulator::Schedule(Seconds(2.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+        end_delay = 2;
+    }
+    else
+    {
+        Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+        end_delay = 1;
+    }
 
-    Simulator::Stop(Seconds(simulationTime + 2 + envStepTime));
+    Simulator::Stop(Seconds(simulationTime + end_delay + envStepTime));
 
     Simulator::Run();
 
