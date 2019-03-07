@@ -55,10 +55,13 @@ class Teacher:
 
                     sent_mb += float(info)
 
-                    if actions[0]==0:
-                        self.CW/=2
-                    elif actions[0]==2:
-                        self.CW*=2
+                    if self.agent.TYPE=="DISCRETE":
+                        if actions[0]==0:
+                            self.CW/=2
+                        elif actions[0]==2:
+                            self.CW*=2
+                    elif self.agent.TYPE=="CONTINUOUS":
+                        self.CW = pow(2, actions[0][0] * 5 + 5)
                     
                     self.CW = max([16, min([1024, self.CW])])
 

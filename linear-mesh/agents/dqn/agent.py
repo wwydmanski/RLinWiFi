@@ -18,6 +18,7 @@ E = 0.01
 A = 0.6
 B = 0.4
 
+
 class Config:
     def __init__(self, buffer_size=int(2e3), batch_size=64, gamma=0.99, tau=1e-3, lr=5e-4, update_every=4):
         self.BUFFER_SIZE = int(buffer_size)
@@ -27,8 +28,10 @@ class Config:
         self.LR = lr
         self.UPDATE_EVERY = update_every
 
-class Agent():
+
+class Agent:
     """Interacts with and learns from the environment."""
+    TYPE = "DISCRETE"
 
     def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
         """Initialize an Agent object.
@@ -39,7 +42,8 @@ class Agent():
             action_size (int): dimension of each action
             seed (int): random seed
         """
-        self.args = (network, state_size, action_size, seed, save, save_loc, save_every)
+        self.args = (network, state_size, action_size,
+                     seed, save, save_loc, save_every)
         self.config = config
 
         self.sess = tf.Session()
@@ -52,7 +56,8 @@ class Agent():
         self.qnetwork_target = network(
             self.sess, state_size, action_size, "target", self.config.LR, checkpoint_file)
 
-        self.memory = ReplayBuffer(action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, seed)
+        self.memory = ReplayBuffer(
+            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, seed)
         self.t_step = 0
 
         self.soft_update_op = self._get_soft_update_op()
@@ -78,9 +83,10 @@ class Agent():
         print("Action space:", action_size)
 
         self.act_op = tf.cond(tf.random_uniform([1], dtype=tf.float32)[0] > self.eps,
-                         lambda: tf.argmax(self.qnetwork_local.output, output_type=tf.int32, axis=1),
-                         lambda: tf.random_uniform([1], minval=0, maxval=action_size, dtype=tf.int32))
-    
+                              lambda: tf.argmax(
+                                  self.qnetwork_local.output, output_type=tf.int32, axis=1),
+                              lambda: tf.random_uniform([1], minval=0, maxval=action_size, dtype=tf.int32))
+
     def reset_all(self):
         self.sess.close()
         tf.reset_default_graph()
@@ -93,12 +99,14 @@ class Agent():
 
     def reset(self):
         self.episode_counter += 1
-        self.eps.load(max(self.eps_end, self.eps_decay*self.eps.eval(self.sess)), self.sess)
-        
+        self.eps.load(max(self.eps_end, self.eps_decay *
+                          self.eps.eval(self.sess)), self.sess)
+
         if self.saver is not None:
             if self.save_config['save'] and self.episode_counter % self.save_config['save_every'] == 0:
                 now = datetime.datetime.now()
-                self.saver.save(self.sess, self.save_config["save_loc"]+now.strftime("%Y-%m-%d_%H-%M.ckpt"))
+                self.saver.save(
+                    self.sess, self.save_config["save_loc"]+now.strftime("%Y-%m-%d_%H-%M.ckpt"))
 
     def _get_soft_update_op(self):
         Qvars = tf.get_collection(
@@ -157,7 +165,8 @@ class Agent():
             np.amax(q_target_output, 1), 1)
         Q_targets = rewards + (gamma*Q_targets_next*(1-dones))
 
-        reduced_loss, result = self.qnetwork_local.train(states, Q_targets, actions)
+        reduced_loss, result = self.qnetwork_local.train(
+            states, Q_targets, actions)
         self._update_loss(reduced_loss)
 
         self.soft_update()
@@ -173,9 +182,10 @@ class Agent():
     def get_loss(self):
         return {"loss": self.loss}
 
+
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples.
-    
+
     Attributes:
         action_size (int): dimension of each action
         buffer_size (int): maximum size of buffer
@@ -186,16 +196,18 @@ class ReplayBuffer:
     def __init__(self, action_size, buffer_size, batch_size, seed):
         """Initialize a ReplayBuffer object."""
         self.action_size = action_size
-        self.memory = deque(maxlen=buffer_size)  
+        self.memory = deque(maxlen=buffer_size)
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names=["state", "action", "reward", "next_state", "done"])
+        self.experience = namedtuple("Experience", field_names=[
+                                     "state", "action", "reward", "next_state", "done"])
         self.seed = random.seed(seed)
-    
+
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
-        e = self.experience(state, action, np.clip(reward, -1, 1), next_state, done)
+        e = self.experience(state, action, np.clip(
+            reward, -1, 1), next_state, done)
         self.memory.append(e)
-    
+
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         experiences = random.sample(self.memory, k=self.batch_size)
@@ -203,9 +215,11 @@ class ReplayBuffer:
         states = np.vstack([e.state for e in experiences if e is not None])
         actions = np.vstack([e.action for e in experiences if e is not None])
         rewards = np.vstack([e.reward for e in experiences if e is not None])
-        next_states = np.vstack([e.next_state for e in experiences if e is not None])
-        dones = np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)
-  
+        next_states = np.vstack(
+            [e.next_state for e in experiences if e is not None])
+        dones = np.vstack(
+            [e.done for e in experiences if e is not None]).astype(np.uint8)
+
         return (states, actions, rewards, next_states, dones)
 
     def __len__(self):

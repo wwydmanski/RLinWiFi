@@ -32,6 +32,7 @@ double envStepTime = 0.1;
 double simulationTime = 10; //seconds
 uint32_t CW = 16;
 uint32_t history_length = 10;
+string type = "";
 
 deque<float> history(history_length, 0.0);
 
@@ -95,12 +96,22 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     std::vector<float> actionVector = box->GetData();
 
-    // CW = pow(2, actionVector.at(0) * 5 + 5);
-    if(actionVector.at(0)==0)
-        CW /= 2;
-    else if(actionVector.at(0)==2)
-        CW *= 2;
-    
+    if (type == "DISCRETE")
+    {
+        if (actionVector.at(0) == 0)
+            CW /= 2;
+        else if (actionVector.at(0) == 2)
+            CW *= 2;
+    }
+    else if (type == "CONTINUOUS")
+    {
+        CW = pow(2, actionVector.at(0) * 5 + 5);
+    }
+    else
+    {
+        throw invalid_argument("Agent type is invalid");
+    }
+
     uint32_t min_cw = 16;
     uint32_t max_cw = 1024;
 
@@ -137,7 +148,6 @@ Collect observations
 */
 Ptr<OpenGymDataContainer> MyGetObservation()
 {
-    //   static deque<float> history (history_length, 0.0);
     recordHistory();
 
     std::vector<uint32_t> shape = {
@@ -175,11 +185,12 @@ void recordHistory()
     last_rx = g_rxPktNum;
     last_tx = g_txPktNum;
 
-    history.push_front(errs* (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
+    history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     history.pop_back();
 
     if (calls < history_length)
         Simulator::Schedule(Seconds(envStepTime), &recordHistory);
+
     else if (calls == history_length)
     {
         // lastValue = -obs;
@@ -228,6 +239,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("rng", "Number of RngRun", rng);
     cmd.AddValue("simTime", "Simulation time in seconds. Default: 10s", simulationTime);
     cmd.AddValue("envStepTime", "Step time in seconds. Default: 0.1s", envStepTime);
+    cmd.AddValue("agentType", "Type of agent actions, either DISCRETE or CONTINUOUS", type);
 
     cmd.Parse(argc, argv);
 
@@ -236,6 +248,7 @@ int main(int argc, char *argv[])
     NS_LOG_UNCOND("--openGymPort: " << openGymPort);
     NS_LOG_UNCOND("--envStepTime: " << envStepTime);
     NS_LOG_UNCOND("--seed: " << simSeed);
+    NS_LOG_UNCOND("--agentType: " << type);
 
     if (verbose)
     {
@@ -356,7 +369,7 @@ int main(int argc, char *argv[])
         installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad);
     }
 
-    Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx" , MakeCallback(&packetSent));
+    Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
 
     PopulateARPcache();
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();

@@ -17,7 +17,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Config:
     def __init__(self, buffer_size=int(2e3), batch_size=64, gamma=0.99, tau=1e-3, lr_actor=1e-5, lr_critic=4e-3, update_every=4):
-        self.BUFFER_SIZE = buffer_size
+        self.BUFFER_SIZE = int(buffer_size)
         self.BATCH_SIZE = batch_size
         self.GAMMA = gamma
         self.TAU = tau
@@ -27,6 +27,8 @@ class Config:
 
 
 class Agent:
+    TYPE = "CONTINUOUS"
+
     def __init__(self, state_size, action_size, config=Config(), random_seed=42):
         self.config = config
 
