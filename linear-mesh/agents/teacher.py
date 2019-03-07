@@ -20,9 +20,8 @@ class Teacher:
         self.SCRIPT_RUNNING = True
         self.CW = 16
 
-    def train(self, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
+    def train(self, EPISODE_COUNT, simTime, stepTime, script_exec_command, *tags, **parameters):
         steps_per_ep = int(simTime/stepTime)
-        script_exec_command = f'../../waf --run "linear-mesh --simTime={simTime} --envStepTime={stepTime}"'
         experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
                         project_name="rl-in-wifi", workspace="wwydmanski")
 
