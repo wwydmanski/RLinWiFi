@@ -7,17 +7,19 @@ import numpy as np
 class QNetworkTf():
     """Actor (Policy) Model."""
 
-    def __init__(self, session, state_size, action_size, name, checkpoint_file=None):
+    def __init__(self, session, state_size, action_size, name, learning_rate, checkpoint_file=None):
         """Initialize parameters and build model.
         Params
         ======
             state_size (int): Dimension of each state
             action_size (int): Dimension of each action
-            seed (int): Random seed
+            name (str): Prefix for tensor names
+            learning_rate (float): Network learning rate
         """
         self.sess = session
         self.name = name
         self.action_size = action_size
+        self.learning_rate = learning_rate
 
         if checkpoint_file is None:
             with tf.variable_scope("placeholders_"+self.name):
@@ -64,11 +66,11 @@ class QNetworkTf():
             # loss = tf.multiply(self.loss_modifier, loss)
             loss = tf.reduce_mean(loss, name='loss')
 
-            decayed_lr = tf.train.exponential_decay(5e-4,
-                                        tf.train.get_or_create_global_step(), 10000,
-                                        0.95, staircase=True)
+            # decayed_lr = tf.train.exponential_decay(5e-4,
+            #                             tf.train.get_or_create_global_step(), 10000,
+            #                             0.95, staircase=True)
             optimize = tf.train.AdamOptimizer(
-                learning_rate=decayed_lr).minimize(loss, name='optimize')
+                learning_rate=self.learning_rate).minimize(loss, name='optimize')
 
         return loss, optimize
 

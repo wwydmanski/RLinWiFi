@@ -7,22 +7,30 @@ import tensorflow as tf
 from .model import QNetworkTf
 
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 128        # minibatch size
-GAMMA = 0.99            # discount factor
-TAU = 1e-3              # for soft update of target parameters
-LR = 5e-4               # learning rate
-UPDATE_EVERY = 2        # how often to update the network
+# BUFFER_SIZE = int(1e5)  # replay buffer size
+# BATCH_SIZE = 32        # minibatch size
+# GAMMA = 0.99            # discount factor
+# TAU = 1e-3              # for soft update of target parameters
+# LR = 5e-4               # learning rate
+# UPDATE_EVERY = 2        # how often to update the network
 
 E = 0.01
 A = 0.6
 B = 0.4
 
+class Config:
+    def __init__(self, buffer_size=int(2e3), batch_size=64, gamma=0.99, tau=1e-3, lr=5e-4, update_every=4):
+        self.BUFFER_SIZE = int(buffer_size)
+        self.BATCH_SIZE = batch_size
+        self.GAMMA = gamma
+        self.TAU = tau
+        self.LR = lr
+        self.UPDATE_EVERY = update_every
 
 class Agent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, network, state_size, action_size, episode_max=30, seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
+    def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
         """Initialize an Agent object.
 
         Params
@@ -32,6 +40,7 @@ class Agent():
             seed (int): random seed
         """
         self.args = (network, state_size, action_size, seed, save, save_loc, save_every)
+        self.config = config
 
         self.sess = tf.Session()
         self.state_size = state_size
@@ -39,11 +48,11 @@ class Agent():
         self.seed = random.seed(seed)
 
         self.qnetwork_local = network(
-            self.sess, state_size, action_size, "local", checkpoint_file)
+            self.sess, state_size, action_size, "local", self.config.LR, checkpoint_file)
         self.qnetwork_target = network(
-            self.sess, state_size, action_size, "target", checkpoint_file)
+            self.sess, state_size, action_size, "target", self.config.LR, checkpoint_file)
 
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
+        self.memory = ReplayBuffer(action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, seed)
         self.t_step = 0
 
         self.soft_update_op = self._get_soft_update_op()
@@ -64,9 +73,7 @@ class Agent():
             self.save_config = None
 
         self.episode_counter = 0
-        self.episode_max = episode_max
         self.notifications = 0
-
 
         print("Action space:", action_size)
 
@@ -99,7 +106,7 @@ class Agent():
         target_vars = tf.get_collection(
             tf.GraphKeys.TRAINABLE_VARIABLES, scope='inference_target')
 
-        return [tvar.assign(TAU*qvar + (1.0-TAU)*tvar) for qvar, tvar in zip(Qvars, target_vars)]
+        return [tvar.assign(self.config.TAU*qvar + (1.0-self.config.TAU)*tvar) for qvar, tvar in zip(Qvars, target_vars)]
 
     def step(self, state, action, reward, next_state, done):
         """ Stores SARS in memory for further processing and teaches agent based
@@ -113,17 +120,17 @@ class Agent():
         """
         self.memory.add(state, action, reward, next_state, done)
 
-        self.t_step = (self.t_step + 1) % UPDATE_EVERY
+        self.t_step = (self.t_step + 1) % self.config.UPDATE_EVERY
         if self.t_step == 0:
-            if len(self.memory) > BATCH_SIZE:
+            if len(self.memory) > self.config.BATCH_SIZE:
                 if self.notifications == 0:
                     print("------- STARTED TRAINING -------")
                     self.notifications = 1
-                elif self.notifications == 1 and len(self.memory) == BUFFER_SIZE:
+                elif self.notifications == 1 and len(self.memory) == self.config.BUFFER_SIZE:
                     print("------- MEMORY BUFFER FILLED -------")
                     self.notifications = -1
                 experiences = self.memory.sample()
-                self.learn(experiences, GAMMA)
+                self.learn(experiences, self.config.GAMMA)
 
     def act(self, state, mode="train"):
         """Returns actions for given state as per current policy.
