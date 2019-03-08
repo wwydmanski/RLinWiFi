@@ -24,7 +24,7 @@ using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("OpenGym");
 
-void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad);
+void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad, double startTime);
 void PopulateARPcache();
 void recordHistory();
 
@@ -226,6 +226,7 @@ int main(int argc, char *argv[])
     string offeredLoad = "150";
     int port = 1025;
     string outputCsv = "cw.csv";
+    string scenario = "basic";
     int rng = 1;
     int warmup = 1;
 
@@ -243,6 +244,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("envStepTime", "Step time in seconds. Default: 0.1s", envStepTime);
     cmd.AddValue("agentType", "Type of agent actions, either DISCRETE or CONTINUOUS", type);
     cmd.AddValue("nonZeroStart", "Start when hitory buffer is filled?", non_zero_start);
+    cmd.AddValue("scenario", "Scenario for analysis: basic, convergence, reaction", scenario);
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Ns3Env parameters:");
@@ -277,10 +279,6 @@ int main(int argc, char *argv[])
     chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());
 
     YansWifiPhyHelper phy = YansWifiPhyHelper::Default();
-    if (tracing)
-    {
-        phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
-    }
     phy.SetChannel(chan);
 
     // Set guard interval
@@ -366,10 +364,39 @@ int main(int argc, char *argv[])
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     }
 
-    for (int i = 0; i < nWifi; ++i)
+    if (scenario == "basic") 
     {
-        installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad);
+        for (int i = 0; i < nWifi; ++i)
+        {
+            installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, 0.0);
+        }
     }
+    else if (scenario == "convergence")
+    {
+        if (nWifi>5)
+        {
+            for (int i = 0; i < 5; ++i)
+            {
+                installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, 1.0);
+            }
+            for (int i = 5; i < nWifi; ++i)
+            {
+                installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, (i-4)*20.0); 
+            }
+        }
+        else
+        {
+            std::cout<<"Not enough Wi-Fi stations to support the convergence scenario."<<endl;
+            exit(0);
+        }
+        
+    }
+    
+	else
+	{
+		std::cout<<"Unsupported scenario"<<endl;
+		exit(0);
+	}    
 
     Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
 
@@ -380,6 +407,12 @@ int main(int argc, char *argv[])
     FlowMonitorHelper flowmon;
     monitor = flowmon.InstallAll();
     monitor->SetAttribute("StartTime", TimeValue(Seconds(warmup)));
+
+    if (tracing)
+    {
+        phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+        phy.EnablePcap ("cw", apDevice.Get (0));
+    }
 
     Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface>(openGymPort);
     openGymInterface->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
@@ -436,7 +469,7 @@ int main(int argc, char *argv[])
 }
 
 // Traffic generator declaration from lte-wifi.cc
-void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad)
+void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad, double startTime)
 {
 
     Ptr<Ipv4> ipv4 = toNode->GetObject<Ipv4>();           // Get Ipv4 instance of the node
@@ -445,7 +478,6 @@ void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int
     ApplicationContainer sourceApplications, sinkApplications;
 
     uint8_t tosValue = 0x70; //AC_BE
-    double simulationTime = 20;
     //Add random fuzz to app start time
     double min = 0.0;
     double max = 1.0;
@@ -467,13 +499,13 @@ void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int
     sinkApplications = sink.Install(toNode);
     // sinkApplications.Add (packetSinkHelper.Install (toNode)); //toNode
 
-    sinkApplications.Start(Seconds(0.0));
+    sinkApplications.Start(Seconds(startTime));
     sinkApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
 
     Ptr<UdpServer> udpServer = DynamicCast<UdpServer>(sinkApplications.Get(0));
     udpServer->TraceConnectWithoutContext("Rx", MakeCallback(&packetReceived));
 
-    sourceApplications.Start(Seconds(1.0));
+    sourceApplications.Start(Seconds(startTime));
     sourceApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
 }
 
