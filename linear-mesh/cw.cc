@@ -227,6 +227,8 @@ int main(int argc, char *argv[])
     int port = 1025;
     string outputCsv = "cw.csv";
     string scenario = "basic";
+    bool dry_run = false;
+
     int rng = 1;
     int warmup = 1;
 
@@ -245,6 +247,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("agentType", "Type of agent actions, either DISCRETE or CONTINUOUS", type);
     cmd.AddValue("nonZeroStart", "Start only after history buffer is filled", non_zero_start);
     cmd.AddValue("scenario", "Scenario for analysis: basic, convergence, reaction", scenario);
+    cmd.AddValue("dryRun", "Execute scenario with BEB and no agent interaction", dry_run);
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Ns3Env parameters:");
@@ -364,7 +367,7 @@ int main(int argc, char *argv[])
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     }
 
-    if (scenario == "basic") 
+    if (scenario == "basic")
     {
         for (int i = 0; i < nWifi; ++i)
         {
@@ -373,7 +376,7 @@ int main(int argc, char *argv[])
     }
     else if (scenario == "convergence")
     {
-        if (nWifi>5)
+        if (nWifi > 5)
         {
             for (int i = 0; i < 5; ++i)
             {
@@ -381,22 +384,21 @@ int main(int argc, char *argv[])
             }
             for (int i = 5; i < nWifi; ++i)
             {
-                installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, (i-4)*20.0); 
+                installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, (i - 4) * 20.0);
             }
         }
         else
         {
-            std::cout<<"Not enough Wi-Fi stations to support the convergence scenario."<<endl;
+            std::cout << "Not enough Wi-Fi stations to support the convergence scenario." << endl;
             exit(0);
         }
-        
     }
-    
-	else
-	{
-		std::cout<<"Unsupported scenario"<<endl;
-		exit(0);
-	}    
+
+    else
+    {
+        std::cout << "Unsupported scenario" << endl;
+        exit(0);
+    }
 
     Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
 
@@ -411,7 +413,7 @@ int main(int argc, char *argv[])
     if (tracing)
     {
         phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
-        phy.EnablePcap ("cw", apDevice.Get (0));
+        phy.EnablePcap("cw", apDevice.Get(0));
     }
 
     Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface>(openGymPort);
@@ -424,16 +426,19 @@ int main(int argc, char *argv[])
     openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
     int end_delay;
-    if (non_zero_start)
+    if (!dry_run)
     {
-        Simulator::Schedule(Seconds(1.0), &recordHistory);
-        Simulator::Schedule(Seconds(2.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-        end_delay = 2;
-    }
-    else
-    {
-        Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-        end_delay = 1;
+        if (non_zero_start)
+        {
+            Simulator::Schedule(Seconds(1.0), &recordHistory);
+            Simulator::Schedule(Seconds(2.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+            end_delay = 2;
+        }
+        else
+        {
+            Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+            end_delay = 1;
+        }
     }
 
     Simulator::Stop(Seconds(simulationTime + end_delay + envStepTime));
