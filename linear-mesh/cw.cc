@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("simTime", "Simulation time in seconds. Default: 10s", simulationTime);
     cmd.AddValue("envStepTime", "Step time in seconds. Default: 0.1s", envStepTime);
     cmd.AddValue("agentType", "Type of agent actions, either DISCRETE or CONTINUOUS", type);
-    cmd.AddValue("nonZeroStart", "Start when hitory buffer is filled?", non_zero_start);
+    cmd.AddValue("nonZeroStart", "Start only after history buffer is filled", non_zero_start);
     cmd.AddValue("scenario", "Scenario for analysis: basic, convergence, reaction", scenario);
     cmd.Parse(argc, argv);
 
