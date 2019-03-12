@@ -32,7 +32,7 @@ double envStepTime = 0.1;
 double simulationTime = 10; //seconds
 uint32_t CW = 16;
 uint32_t history_length = 10;
-string type = "";
+string type = "discrete";
 bool non_zero_start = false;
 
 deque<float> history(history_length, 0.0);
@@ -41,7 +41,7 @@ deque<float> history(history_length, 0.0);
 Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
-{
+{ 
     float low = 0.0;
     float high = 10.0;
     std::vector<uint32_t> shape = {
@@ -97,14 +97,14 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     std::vector<float> actionVector = box->GetData();
 
-    if (type == "DISCRETE")
+    if (type == "discrete")
     {
         if (actionVector.at(0) == 0)
             CW /= 2;
         else if (actionVector.at(0) == 2)
             CW *= 2;
     }
-    else if (type == "CONTINUOUS")
+    else if (type == "continuous")
     {
         CW = pow(2, actionVector.at(0) * 5 + 5);
     }
@@ -244,7 +244,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("rng", "Number of RngRun", rng);
     cmd.AddValue("simTime", "Simulation time in seconds. Default: 10s", simulationTime);
     cmd.AddValue("envStepTime", "Step time in seconds. Default: 0.1s", envStepTime);
-    cmd.AddValue("agentType", "Type of agent actions, either DISCRETE or CONTINUOUS", type);
+    cmd.AddValue("agentType", "Type of agent actions: discrete, continuous", type);
     cmd.AddValue("nonZeroStart", "Start only after history buffer is filled", non_zero_start);
     cmd.AddValue("scenario", "Scenario for analysis: basic, convergence, reaction", scenario);
     cmd.AddValue("dryRun", "Execute scenario with BEB and no agent interaction", dry_run);
@@ -256,6 +256,8 @@ int main(int argc, char *argv[])
     NS_LOG_UNCOND("--envStepTime: " << envStepTime);
     NS_LOG_UNCOND("--seed: " << simSeed);
     NS_LOG_UNCOND("--agentType: " << type);
+    NS_LOG_UNCOND("--scenario: " << scenario);
+    NS_LOG_UNCOND("--dryRun: " << dry_run);
 
     if (verbose)
     {
@@ -425,7 +427,7 @@ int main(int argc, char *argv[])
     openGymInterface->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
     openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
-    int end_delay;
+    int end_delay = 0;
     if (!dry_run)
     {
         if (non_zero_start)
@@ -443,6 +445,7 @@ int main(int argc, char *argv[])
 
     Simulator::Stop(Seconds(simulationTime + end_delay + envStepTime));
 
+    NS_LOG_UNCOND("Simulation started");
     Simulator::Run();
 
     double flowThr;
