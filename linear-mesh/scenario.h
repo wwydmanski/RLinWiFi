@@ -53,6 +53,45 @@ class ConvergenceScenario : public Scenario
     void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback);
 };
 
+class ScenarioHelper
+{
+  private:
+    int nWifim;
+    NodeContainer wifiStaNode;
+    NodeContainer wifiApNode;
+    int port;
+    std::string offeredLoad;
+
+  public:
+    ScenarioHelper(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad)
+    {
+        this->nWifim = nWifim;
+        this->wifiStaNode = wifiStaNode;
+        this->wifiApNode = wifiApNode;
+        this->port = port;
+        this->offeredLoad = offeredLoad;
+    }
+
+    Scenario *getScenario(std::string scenario)
+    {
+        Scenario *wifiScenario;
+        if (scenario == "basic")
+        {
+            wifiScenario = new BasicScenario(this->nWifim, this->wifiStaNode, this->wifiApNode, this->port, this->offeredLoad);
+        }
+        else if (scenario == "convergence")
+        {
+            wifiScenario = new ConvergenceScenario(this->nWifim, this->wifiStaNode, this->wifiApNode, this->port, this->offeredLoad);
+        }
+        else
+        {
+            std::cout << "Unsupported scenario" << endl;
+            exit(0);
+        }
+        return wifiScenario;
+    }
+};
+
 Scenario::Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad)
 {
     this->nWifim = nWifim;

@@ -370,20 +370,9 @@ int main(int argc, char *argv[])
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     }
 
-    Scenario* wifiScenario;
-    if (scenario == "basic")
-    {
-        wifiScenario = new BasicScenario(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
-    }
-    else if (scenario == "convergence")
-    {
-        wifiScenario = new ConvergenceScenario(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
-    }
-    else
-    {
-        std::cout << "Unsupported scenario" << endl;
-        exit(0);
-    }
+    ScenarioHelper helper = ScenarioHelper(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
+    Scenario* wifiScenario = helper.getScenario(scenario);
+
     wifiScenario->installScenario(simulationTime, envStepTime, MakeCallback(&packetReceived));
 
     Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
