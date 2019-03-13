@@ -18,6 +18,7 @@
 #include <iomanip> // put_time
 #include <deque>
 #include <algorithm>
+#include "scenario.h"
 
 using namespace std;
 using namespace ns3;
@@ -369,42 +370,25 @@ int main(int argc, char *argv[])
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     }
 
+    Scenario* wifiScenario;
     if (scenario == "basic")
     {
-        for (int i = 0; i < nWifi; ++i)
-        {
-            installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, 0.0);
-        }
+        wifiScenario = new BasicScenario(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
     }
     else if (scenario == "convergence")
     {
-        if (nWifi > 5)
-        {
-            for (int i = 0; i < 5; ++i)
-            {
-                installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, 1.0);
-            }
-            for (int i = 5; i < nWifi; ++i)
-            {
-                installTrafficGenerator(wifiStaNode.Get(i), wifiApNode.Get(0), port++, offeredLoad, (i - 4) * 20.0);
-            }
-        }
-        else
-        {
-            std::cout << "Not enough Wi-Fi stations to support the convergence scenario." << endl;
-            exit(0);
-        }
+        wifiScenario = new ConvergenceScenario(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
     }
-
     else
     {
         std::cout << "Unsupported scenario" << endl;
         exit(0);
     }
+    wifiScenario->installScenario(simulationTime, envStepTime, MakeCallback(&packetReceived));
 
     Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
 
-    PopulateARPcache();
+    wifiScenario->PopulateARPcache();
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     Ptr<FlowMonitor> monitor;
@@ -474,96 +458,4 @@ int main(int argc, char *argv[])
     NS_LOG_UNCOND("Packets registered by handler: " << g_rxPktNum << " Packets" << endl);
 
     return 0;
-}
-
-// Traffic generator declaration from lte-wifi.cc
-void installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad, double startTime)
-{
-
-    Ptr<Ipv4> ipv4 = toNode->GetObject<Ipv4>();           // Get Ipv4 instance of the node
-    Ipv4Address addr = ipv4->GetAddress(1, 0).GetLocal(); // Get Ipv4InterfaceAddress of xth interface.
-
-    ApplicationContainer sourceApplications, sinkApplications;
-
-    uint8_t tosValue = 0x70; //AC_BE
-    //Add random fuzz to app start time
-    double min = 0.0;
-    double max = 1.0;
-    Ptr<UniformRandomVariable> fuzz = CreateObject<UniformRandomVariable>();
-    fuzz->SetAttribute("Min", DoubleValue(min));
-    fuzz->SetAttribute("Max", DoubleValue(max));
-
-    InetSocketAddress sinkSocket(addr, port);
-    sinkSocket.SetTos(tosValue);
-    //OnOffHelper onOffHelper ("ns3::TcpSocketFactory", sinkSocket);
-    OnOffHelper onOffHelper("ns3::UdpSocketFactory", sinkSocket);
-    onOffHelper.SetConstantRate(DataRate(offeredLoad + "Mbps"), 1500 - 20 - 8 - 8);
-    // onOffHelper.TraceConnectWithoutContext("Tx", MakeCallback(&packetSent));
-    sourceApplications.Add(onOffHelper.Install(fromNode)); //fromNode
-
-    //PacketSinkHelper packetSinkHelper ("ns3::TcpSocketFactory", sinkSocket);
-    // PacketSinkHelper packetSinkHelper ("ns3::UdpSocketFactory", sinkSocket);
-    UdpServerHelper sink(port);
-    sinkApplications = sink.Install(toNode);
-    // sinkApplications.Add (packetSinkHelper.Install (toNode)); //toNode
-
-    sinkApplications.Start(Seconds(startTime));
-    sinkApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
-
-    Ptr<UdpServer> udpServer = DynamicCast<UdpServer>(sinkApplications.Get(0));
-    udpServer->TraceConnectWithoutContext("Rx", MakeCallback(&packetReceived));
-
-    sourceApplications.Start(Seconds(startTime));
-    sourceApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
-}
-
-void PopulateARPcache()
-{
-    Ptr<ArpCache> arp = CreateObject<ArpCache>();
-    arp->SetAliveTimeout(Seconds(3600 * 24 * 365));
-
-    for (NodeList::Iterator i = NodeList::Begin(); i != NodeList::End(); ++i)
-    {
-        Ptr<Ipv4L3Protocol> ip = (*i)->GetObject<Ipv4L3Protocol>();
-        NS_ASSERT(ip != 0);
-        ObjectVectorValue interfaces;
-        ip->GetAttribute("InterfaceList", interfaces);
-
-        for (ObjectVectorValue::Iterator j = interfaces.Begin(); j != interfaces.End(); j++)
-        {
-            Ptr<Ipv4Interface> ipIface = (*j).second->GetObject<Ipv4Interface>();
-            NS_ASSERT(ipIface != 0);
-            Ptr<NetDevice> device = ipIface->GetDevice();
-            NS_ASSERT(device != 0);
-            Mac48Address addr = Mac48Address::ConvertFrom(device->GetAddress());
-
-            for (uint32_t k = 0; k < ipIface->GetNAddresses(); k++)
-            {
-                Ipv4Address ipAddr = ipIface->GetAddress(k).GetLocal();
-                if (ipAddr == Ipv4Address::GetLoopback())
-                    continue;
-
-                ArpCache::Entry *entry = arp->Add(ipAddr);
-                Ipv4Header ipv4Hdr;
-                ipv4Hdr.SetDestination(ipAddr);
-                Ptr<Packet> p = Create<Packet>(100);
-                entry->MarkWaitReply(ArpCache::Ipv4PayloadHeaderPair(p, ipv4Hdr));
-                entry->MarkAlive(addr);
-            }
-        }
-    }
-
-    for (NodeList::Iterator i = NodeList::Begin(); i != NodeList::End(); ++i)
-    {
-        Ptr<Ipv4L3Protocol> ip = (*i)->GetObject<Ipv4L3Protocol>();
-        NS_ASSERT(ip != 0);
-        ObjectVectorValue interfaces;
-        ip->GetAttribute("InterfaceList", interfaces);
-
-        for (ObjectVectorValue::Iterator j = interfaces.Begin(); j != interfaces.End(); j++)
-        {
-            Ptr<Ipv4Interface> ipIface = (*j).second->GetObject<Ipv4Interface>();
-            ipIface->SetAttribute("ArpCache", PointerValue(arp));
-        }
-    }
 }
