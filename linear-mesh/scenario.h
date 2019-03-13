@@ -11,7 +11,6 @@
 
 using namespace std;
 using namespace ns3;
-// NS_LOG_COMPONENT_DEFINE("OpenGym");
 
 class Scenario
 {
@@ -42,7 +41,7 @@ class BasicScenario : public Scenario
     using Scenario::Scenario;
 
   public:
-    void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback);
+    void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback) override;
 };
 
 class ConvergenceScenario : public Scenario
@@ -50,7 +49,7 @@ class ConvergenceScenario : public Scenario
     using Scenario::Scenario;
 
   public:
-    void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback);
+    void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback) override;
 };
 
 class ScenarioHelper
