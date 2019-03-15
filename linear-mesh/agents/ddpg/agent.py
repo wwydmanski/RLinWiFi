@@ -27,13 +27,13 @@ class Config:
 
 
 class Agent:
-    TYPE = "CONTINUOUS"
+    TYPE = "continuous"
 
     def __init__(self, state_size, action_size, config=Config(), random_seed=42):
         self.config = config
 
         self.action_size = action_size
-        self.noise = OUNoise(action_size, random_seed)
+        self.noise = OUNoise(action_size, random_seed, 0.1, 0.3, 0.7)
 
         self.actor_local = Actor(
             state_size, action_size, random_seed).to(device)
@@ -83,7 +83,7 @@ class Agent:
         self.actor_local.train()
 
         if add_noise:
-            action_values += (self.noise.sample()-0.4) / \
+            action_values += (self.noise.sample()-1) / \
                 np.sqrt(self.episodes_passed)
 
         return np.clip(action_values, -1, 1)

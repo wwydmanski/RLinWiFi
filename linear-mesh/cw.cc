@@ -42,7 +42,7 @@ deque<float> history(history_length, 0.0);
 Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
-{ 
+{
     float low = 0.0;
     float high = 10.0;
     std::vector<uint32_t> shape = {
@@ -81,8 +81,12 @@ std::string MyGetExtraInfo(void)
     static float lastValue = 0.0;
     float obs = g_rxPktNum - lastValue;
     lastValue = g_rxPktNum;
+    
+    float sentMbytes = obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
 
-    std::string myInfo = std::to_string(obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
+    std::string myInfo = std::to_string(sentMbytes);
+    myInfo = myInfo + "|" + to_string(CW);
+
     NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
 
     return myInfo;
@@ -107,11 +111,12 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     }
     else if (type == "continuous")
     {
-        CW = pow(2, actionVector.at(0) * 5 + 5);
+        CW = pow(2, actionVector.at(0) * 3 + 7);
     }
     else
     {
-        throw invalid_argument("Agent type is invalid");
+        std::cout << "Unsupported agent type!" << endl;
+        exit(0);
     }
 
     uint32_t min_cw = 16;
@@ -370,8 +375,8 @@ int main(int argc, char *argv[])
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     }
 
-    ScenarioHelper helper = ScenarioHelper(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
-    Scenario* wifiScenario = helper.getScenario(scenario);
+    ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
+    Scenario *wifiScenario = helper.getScenario(scenario);
 
     wifiScenario->installScenario(simulationTime, envStepTime, MakeCallback(&packetReceived));
 

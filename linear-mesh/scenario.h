@@ -52,7 +52,7 @@ class ConvergenceScenario : public Scenario
     void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback) override;
 };
 
-class ScenarioHelper
+class ScenarioFactory
 {
   private:
     int nWifim;
@@ -62,7 +62,7 @@ class ScenarioHelper
     std::string offeredLoad;
 
   public:
-    ScenarioHelper(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad)
+    ScenarioFactory(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad)
     {
         this->nWifim = nWifim;
         this->wifiStaNode = wifiStaNode;

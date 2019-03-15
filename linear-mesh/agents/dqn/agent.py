@@ -31,7 +31,7 @@ class Config:
 
 class Agent:
     """Interacts with and learns from the environment."""
-    TYPE = "DISCRETE"
+    TYPE = "discrete"
 
     def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
         """Initialize an Agent object.
