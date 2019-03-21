@@ -16,7 +16,7 @@ def hidden_init(layer):
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, seed, fc_units=128, fc2_units=64):
+    def __init__(self, state_size, action_size, seed, fc_units=128, fc2_units=64, fc3_units=32):
         """Initialize parameters and build model.
         
         Args:
@@ -33,17 +33,20 @@ class Actor(nn.Module):
         self.norm1 = torch.nn.BatchNorm1d(fc_units)
         self.fc2 = nn.Linear(fc_units, fc2_units)
         self.norm2 = torch.nn.BatchNorm1d(fc2_units)
-        self.fc3 = nn.Linear(fc2_units, action_size)
+        # self.fc3 = nn.Linear(fc2_units, action_size)
+        self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.fc4 = nn.Linear(fc3_units, action_size)
+
         self.reset_parameters()
 
     def reset_parameters(self):
         self.fc1.weight.data.uniform_(*hidden_init(self.fc1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
-        # torch.nn.init.xavier_uniform(self.fc1)
-        # torch.nn.init.xavier_uniform(self.fc2)
 
-        self.fc3.weight.data.uniform_(-3e-3, 3e-3)
-        # self.fc3.weight.data.uniform_(*hidden_init(self.fc3))
+        # self.fc3.weight.data.uniform_(-3e-3, 3e-3)
+        self.fc3.weight.data.uniform_(*hidden_init(self.fc3))
+        self.fc4.weight.data.uniform_(-3e-3, 3e-3)
+
 
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
@@ -52,13 +55,15 @@ class Actor(nn.Module):
         x = self.norm1(F.relu(x))
         x = self.fc2(x)
         x = self.norm2(F.relu(x))
-        return torch.tanh(self.fc3(x))
+        # return torch.tanh(self.fc3(x))
+        x = F.relu(self.fc3(x))
+        return torch.tanh(self.fc4(x))
 
 
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, seed, fcs1_units=128, fc2_units=64):
+    def __init__(self, state_size, action_size, seed, fcs1_units=128, fc2_units=64, fc3_units=32):
         """Initialize parameters and build model.
         Params
         ======
@@ -74,16 +79,20 @@ class Critic(nn.Module):
         self.fcs1 = nn.Linear(state_size, fcs1_units)
         self.norm1 = torch.nn.BatchNorm1d(fcs1_units)
         self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
-        # self.fc3 = nn.Linear(fc2_units, fc3_units)
-        self.fc3 = nn.Linear(fc2_units, 1)
+        # self.fc3 = nn.Linear(fc2_units, 1)
+        self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.fc4 = nn.Linear(fc3_units, 1)
+
 
         self.reset_parameters()
 
     def reset_parameters(self):
         self.fcs1.weight.data.uniform_(*hidden_init(self.fcs1))
         self.fc2.weight.data.uniform_(*hidden_init(self.fc2))
-        # self.fc3.weight.data.uniform_(*hidden_init(self.fc3))
-        self.fc3.weight.data.uniform_(-3e-3, 3e-3)
+        # self.fc2.weight.data.uniform_(-3e-3, 3e-3)
+        self.fc3.weight.data.uniform_(*hidden_init(self.fc3))
+        self.fc4.weight.data.uniform_(-3e-3, 3e-3)
+
 
     def forward(self, state, action):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
@@ -92,6 +101,7 @@ class Critic(nn.Module):
         xs = self.norm1(F.relu(xs))
         x = torch.cat((xs, action), dim=1)
         x = F.relu(self.fc2(x))
-        # x = F.relu(self.fc3(x))
+        x = F.relu(self.fc3(x))
 
-        return self.fc3(x)
+        # return self.fc3(x)
+        return self.fc4(x)
