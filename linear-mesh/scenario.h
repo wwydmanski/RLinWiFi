@@ -202,6 +202,7 @@ void BasicScenario::installScenario(double simulationTime, double envStepTime, n
 
 void ConvergenceScenario::installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback)
 {
+    float delta = simulationTime/this->nWifim;
     if (this->nWifim > 5)
     {
         for (int i = 0; i < 5; ++i)
@@ -210,7 +211,7 @@ void ConvergenceScenario::installScenario(double simulationTime, double envStepT
         }
         for (int i = 5; i < this->nWifim; ++i)
         {
-            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, (i - 4) * 20.0, simulationTime, envStepTime, callback);
+            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, (i - 4) * delta, simulationTime, envStepTime, callback);
         }
     }
     else
