@@ -83,13 +83,15 @@ class Agent:
         self.actor_local.train()
 
         if add_noise:
-            action_values += (self.noise.sample()-1) / \
-                np.sqrt(self.episodes_passed)
+            for i in range(action_values.shape[0]):
+                action_values[i] += (self.noise.sample()-1) / \
+                    np.sqrt(self.episodes_passed)
 
         return np.clip(action_values, -1, 1)
 
-    def step(self, state, action, reward, next_state, done):
-        self.memory.add(state, action, reward, next_state, done)
+    def step(self, states, actions, rewards, next_states, dones):
+        for state, action, reward, next_state, done in zip(states, actions, rewards, next_states, dones):
+            self.memory.add(state, action, reward, next_state, done)
 
         self.t_step += 1
 
