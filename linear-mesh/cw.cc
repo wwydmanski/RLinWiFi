@@ -189,10 +189,22 @@ void recordHistory()
     calls++;
 
     uint32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
+
+    // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
+    float ratio;
+    if(g_txPktNum==last_tx)
+    {
+        ratio = 0;
+    }
+    else
+    {
+         ratio = ((float)errs)/((float)(g_txPktNum - last_tx));
+    }
+
     last_rx = g_rxPktNum;
     last_tx = g_txPktNum;
 
-    history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
+    history.push_front(ratio);
     history.pop_back();
 
     if (calls < history_length && non_zero_start)
@@ -239,9 +251,10 @@ int main(int argc, char *argv[])
     int warmup = 1;
 
     uint32_t openGymPort = 5555;
-    uint32_t simSeed = 1;
+    uint32_t simSeed = time(NULL);
 
     CommandLine cmd;
+    cmd.AddValue("openGymPort", "Specify port number. Default: 5555", openGymPort);
     cmd.AddValue("CW", "Value of Contention Window", CW);
     cmd.AddValue("historyLength", "Length of history window", history_length);
     cmd.AddValue("nWifi", "Number of wifi 802.11ax STA devices", nWifi);
@@ -254,6 +267,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("nonZeroStart", "Start only after history buffer is filled", non_zero_start);
     cmd.AddValue("scenario", "Scenario for analysis: basic, convergence, reaction", scenario);
     cmd.AddValue("dryRun", "Execute scenario with BEB and no agent interaction", dry_run);
+
     cmd.Parse(argc, argv);
 
     NS_LOG_UNCOND("Ns3Env parameters:");
@@ -358,7 +372,7 @@ int main(int argc, char *argv[])
     stack.Install(wifiStaNode);
     //Random
 
-    RngSeedManager::SetSeed(1);
+    RngSeedManager::SetSeed(simSeed);
     RngSeedManager::SetRun(rng);
 
     Ipv4AddressHelper address;
@@ -411,7 +425,7 @@ int main(int argc, char *argv[])
         if (non_zero_start)
         {
             Simulator::Schedule(Seconds(1.0), &recordHistory);
-            Simulator::Schedule(Seconds(2.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+            Simulator::Schedule(Seconds(envStepTime*history_length+1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
             end_delay = 2;
         }
         else
