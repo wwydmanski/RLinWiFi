@@ -3,6 +3,8 @@ import tqdm
 import matplotlib.pyplot as plt
 import subprocess
 from comet_ml import Experiment
+from ns3gym import ns3env
+import time
 
 class Logger:
     def __init__(self, *tags, **parameters):
@@ -20,12 +22,18 @@ class Logger:
         self.experiment.log_parameter("Steps per episode", steps_per_ep)
 
     def log_round(self, reward, cumulative_reward, info, loss, step):
-        round_mb = float(info.split("|")[0])
-        self.sent_mb += round_mb
-        CW = float(info.split("|")[1])
 
-        self.experiment.log_metric("Round reward", reward, step=step)
-        self.experiment.log_metric("Per-ep reward", cumulative_reward, step=step)
+        try:
+            round_mb = np.mean([float(i.split("|")[0]) for i in info])
+        except Exception as e:
+            print(info)
+            print(reward)
+            raise e
+        self.sent_mb += round_mb
+        CW = np.mean([float(i.split("|")[1]) for i in info])
+
+        self.experiment.log_metric("Round reward", np.mean(reward), step=step)
+        self.experiment.log_metric("Per-ep reward", np.mean(cumulative_reward), step=step)
         self.experiment.log_metric("Megabytes sent", self.sent_mb, step=step)
         self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
         self.experiment.log_metric("Chosen CW", CW, step=step)
@@ -57,16 +65,17 @@ class Teacher:
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def train(self, EPISODE_COUNT, simTime, stepTime, script_exec_command, *tags, **parameters):
+    def train(self, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(*tags, **parameters)
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
 
         for i in range(EPISODE_COUNT):
-            if not self.SCRIPT_RUNNING:
-                subprocess.Popen(['bash', '-c', script_exec_command])
-                self.SCRIPT_RUNNING = True
+            try:
+                self.env.run()
+            except AlreadyRunningException as e:
+                pass
 
             cumulative_reward = 0
             reward = 0
@@ -77,14 +86,14 @@ class Teacher:
 
             with tqdm.trange(steps_per_ep) as t:
                 for step in t:
-                    self.actions = self.agent.act(np.array([obs], dtype=np.float32), True)
+                    self.actions = self.agent.act(np.array(obs, dtype=np.float32), True)
                     next_obs, reward, done, info = self.env.step(self.actions)
 
                     if self.last_actions is not None:
                         self.agent.step(obs, self.last_actions, reward,
                                         next_obs, done)
                     obs = next_obs  
-                    cumulative_reward += reward
+                    cumulative_reward += np.mean(reward)
 
                     self.last_actions = self.actions
 
@@ -92,11 +101,88 @@ class Teacher:
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
 
             self.agent.reset()
+            self.env.close()
             print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/simTime:.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
 
             logger.log_episode(cumulative_reward, logger.sent_mb/simTime, i)
-            self.SCRIPT_RUNNING = False
+            self.env.SCRIPT_RUNNING = False
 
         logger.end()
-
         print("Training finished.")
+
+class AlreadyRunningException(Exception):
+    def __init__(self, *args, **kwargs):
+        return super().__init__(*args, **kwargs)
+
+class EnvWrapper:
+    def __init__(self, no_threads, **params):
+        self.no_threads = no_threads
+        self.ports = [1025+i for i in range(no_threads)]
+        self.commands = self._craft_commands(params)
+
+        self.SCRIPT_RUNNING = False
+        self.envs = []
+
+        self.run()
+        for port in self.ports:
+            env = ns3env.Ns3Env(port=port, stepTime=params['envStepTime'], startSim=0, simSeed=0, simArgs=params, debug=False)
+            self.envs.append(env)
+        
+        self.SCRIPT_RUNNING = True
+
+    def run(self):
+        if self.SCRIPT_RUNNING:
+            raise AlreadyRunningException("Script is already running")
+
+        for cmd, port in zip(self.commands, self.ports):
+            subprocess.Popen(['bash', '-c', cmd])
+        self.SCRIPT_RUNNING = True
+
+    def _craft_commands(self, params):
+        command = '../../waf --run "linear-mesh'
+        for key, val in params.items():
+            command+=f" --{key}={val}"
+        
+        commands = []
+        for p in self.ports:
+            commands.append(command+f' --openGymPort={p}"')
+
+        return commands
+
+    def reset(self):
+        obs = []
+        for env in self.envs:
+            obs.append(env.reset())
+
+        return obs
+    
+    def step(self, actions):
+        next_obs, reward, done, info = [], [], [], []
+
+        for i, env in enumerate(self.envs):
+            no, rew, dn, inf = env.step(actions[i].tolist())
+            next_obs.append(no)
+            reward.append(rew)
+            done.append(dn)
+            info.append(inf)
+
+        return next_obs, reward, done, info
+
+    @property
+    def observation_space(self):
+        return (self.no_threads, repr(self.envs[0].observation_space))
+
+    @property
+    def action_space(self):
+        return (self.no_threads, repr(self.envs[0].action_space))
+
+    def close(self):
+        for env in self.envs:
+            env.close()
+        subprocess.Popen(['bash', '-c', "killall linear-mesh"])
+        
+        self.SCRIPT_RUNNING = False
+
+    def __getattr__(self, attr):
+        for env in self.envs:
+            env.attr()

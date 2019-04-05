@@ -81,7 +81,7 @@ std::string MyGetExtraInfo(void)
     static float lastValue = 0.0;
     float obs = g_rxPktNum - lastValue;
     lastValue = g_rxPktNum;
-    
+
     float sentMbytes = obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
 
     std::string myInfo = std::to_string(sentMbytes);
@@ -139,7 +139,9 @@ float MyGetReward(void)
     float res = g_rxPktNum - last_packets;
     // float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
 
-    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - 0.5;
+    // last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - 0.5;
+    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime)*10-0.5;
+
     last_packets = g_rxPktNum;
 
     if (ticks <= 2 * envStepTime)
@@ -192,13 +194,13 @@ void recordHistory()
 
     // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     float ratio;
-    if(g_txPktNum==last_tx)
+    if (g_txPktNum == last_tx)
     {
         ratio = 0;
     }
     else
     {
-         ratio = ((float)errs)/((float)(g_txPktNum - last_tx));
+        ratio = ((float)errs) / ((float)(g_txPktNum - last_tx));
     }
 
     last_rx = g_rxPktNum;
@@ -232,6 +234,125 @@ void packetSent(Ptr<const Packet> packet)
     g_txPktNum++;
 }
 
+void set_phy(int nWifi, int guardInterval, NodeContainer &wifiStaNode, NodeContainer &wifiApNode, YansWifiPhyHelper &phy)
+{
+    Ptr<MatrixPropagationLossModel> lossModel = CreateObject<MatrixPropagationLossModel>();
+    lossModel->SetDefaultLoss(50);
+
+    wifiStaNode.Create(nWifi);
+    wifiApNode.Create(1);
+
+    YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
+    Ptr<YansWifiChannel> chan = channel.Create();
+    chan->SetPropagationLossModel(lossModel);
+    chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());
+
+    phy = YansWifiPhyHelper::Default();
+    phy.SetChannel(chan);
+
+    // Set guard interval
+    phy.Set("GuardInterval", TimeValue(NanoSeconds(guardInterval)));
+}
+
+void set_nodes(int channelWidth, int rng, uint32_t simSeed, NodeContainer wifiStaNode, NodeContainer wifiApNode, YansWifiPhyHelper phy, WifiMacHelper mac, WifiHelper wifi, NetDeviceContainer &apDevice)
+{
+    Ssid ssid = Ssid("ns3-80211ax");
+
+    mac.SetType("ns3::StaWifiMac",
+                "Ssid", SsidValue(ssid),
+                "ActiveProbing", BooleanValue(false),
+                "BE_MaxAmpduSize", UintegerValue(0));
+
+    NetDeviceContainer staDevice;
+    staDevice = wifi.Install(phy, mac, wifiStaNode);
+
+    mac.SetType("ns3::ApWifiMac",
+                "EnableBeaconJitter", BooleanValue(false),
+                "Ssid", SsidValue(ssid));
+
+    apDevice = wifi.Install(phy, mac, wifiApNode);
+
+    // Set channel width
+    Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelWidth", UintegerValue(channelWidth));
+
+    // mobility.
+    MobilityHelper mobility;
+    Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
+
+    positionAlloc->Add(Vector(0.0, 0.0, 0.0));
+    positionAlloc->Add(Vector(1.0, 0.0, 0.0));
+    mobility.SetPositionAllocator(positionAlloc);
+
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+
+    mobility.Install(wifiApNode);
+    mobility.Install(wifiStaNode);
+    /* Internet stack*/
+    InternetStackHelper stack;
+    stack.Install(wifiApNode);
+    stack.Install(wifiStaNode);
+
+    //Random
+    RngSeedManager::SetSeed(simSeed);
+    RngSeedManager::SetRun(rng);
+
+    Ipv4AddressHelper address;
+    address.SetBase("192.168.1.0", "255.255.255.0");
+    Ipv4InterfaceContainer staNodeInterface;
+    Ipv4InterfaceContainer apNodeInterface;
+
+    staNodeInterface = address.Assign(staDevice);
+    apNodeInterface = address.Assign(apDevice);
+
+    if (CW)
+    {
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
+    }
+}
+
+void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansWifiPhyHelper phy, NetDeviceContainer apDevice, int end_delay, Ptr<FlowMonitor> &monitor, FlowMonitorHelper &flowmon)
+{
+    monitor = flowmon.InstallAll();
+    monitor->SetAttribute("StartTime", TimeValue(Seconds(warmup)));
+
+    if (tracing)
+    {
+        phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
+        phy.EnablePcap("cw", apDevice.Get(0));
+    }
+
+    Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface>(openGymPort);
+    openGymInterface->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
+    openGymInterface->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));
+    openGymInterface->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
+    openGymInterface->SetGetObservationCb(MakeCallback(&MyGetObservation));
+    openGymInterface->SetGetRewardCb(MakeCallback(&MyGetReward));
+    openGymInterface->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
+    openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
+
+    if (!dry_run)
+    {
+        if (non_zero_start)
+        {
+            Simulator::Schedule(Seconds(1.0), &recordHistory);
+            Simulator::Schedule(Seconds(envStepTime * history_length + 1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+        }
+        else
+            Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    }
+
+    Simulator::Stop(Seconds(simulationTime + end_delay + envStepTime + 1.0));
+
+    NS_LOG_UNCOND("Simulation started");
+    Simulator::Run();
+}
+
+void signalHandler( int signum ) {
+   cout << "Interrupt signal " << signum << " received.\n";
+   exit(signum);  
+}
+
 int main(int argc, char *argv[])
 {
     bool verbose = false;
@@ -252,6 +373,8 @@ int main(int argc, char *argv[])
 
     uint32_t openGymPort = 5555;
     uint32_t simSeed = time(NULL);
+
+    signal(SIGTERM, signalHandler);
 
     CommandLine cmd;
     cmd.AddValue("openGymPort", "Specify port number. Default: 5555", openGymPort);
@@ -290,24 +413,10 @@ int main(int argc, char *argv[])
         Config::SetDefault("ns3::WifiRemoteStationManager::RtsCtsThreshold", StringValue("0"));
     }
 
-    Ptr<MatrixPropagationLossModel> lossModel = CreateObject<MatrixPropagationLossModel>();
-    lossModel->SetDefaultLoss(50);
-
     NodeContainer wifiStaNode;
-    wifiStaNode.Create(nWifi);
     NodeContainer wifiApNode;
-    wifiApNode.Create(1);
-
-    YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
-    Ptr<YansWifiChannel> chan = channel.Create();
-    chan->SetPropagationLossModel(lossModel);
-    chan->SetPropagationDelayModel(CreateObject<ConstantSpeedPropagationDelayModel>());
-
-    YansWifiPhyHelper phy = YansWifiPhyHelper::Default();
-    phy.SetChannel(chan);
-
-    // Set guard interval
-    phy.Set("GuardInterval", TimeValue(NanoSeconds(guardInterval)));
+    YansWifiPhyHelper phy;
+    set_phy(nWifi, guardInterval, wifiStaNode, wifiApNode, phy);
 
     WifiMacHelper mac;
     WifiHelper wifi;
@@ -334,65 +443,22 @@ int main(int argc, char *argv[])
     //                              "DataMode", StringValue ("HtMcs7"),
     //                              "ControlMode", StringValue ("HtMcs7"));
 
-    Ssid ssid = Ssid("ns3-80211ax");
-
-    mac.SetType("ns3::StaWifiMac",
-                "Ssid", SsidValue(ssid),
-                "ActiveProbing", BooleanValue(false),
-                "BE_MaxAmpduSize", UintegerValue(0));
-
-    NetDeviceContainer staDevice;
-    staDevice = wifi.Install(phy, mac, wifiStaNode);
-
-    mac.SetType("ns3::ApWifiMac",
-                "EnableBeaconJitter", BooleanValue(false),
-                "Ssid", SsidValue(ssid));
-
     NetDeviceContainer apDevice;
-    apDevice = wifi.Install(phy, mac, wifiApNode);
-
-    // Set channel width
-    Config::Set("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/ChannelWidth", UintegerValue(channelWidth));
-
-    // mobility.
-    MobilityHelper mobility;
-    Ptr<ListPositionAllocator> positionAlloc = CreateObject<ListPositionAllocator>();
-
-    positionAlloc->Add(Vector(0.0, 0.0, 0.0));
-    positionAlloc->Add(Vector(1.0, 0.0, 0.0));
-    mobility.SetPositionAllocator(positionAlloc);
-
-    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
-
-    mobility.Install(wifiApNode);
-    mobility.Install(wifiStaNode);
-    /* Internet stack*/
-    InternetStackHelper stack;
-    stack.Install(wifiApNode);
-    stack.Install(wifiStaNode);
-    //Random
-
-    RngSeedManager::SetSeed(simSeed);
-    RngSeedManager::SetRun(rng);
-
-    Ipv4AddressHelper address;
-    address.SetBase("192.168.1.0", "255.255.255.0");
-    Ipv4InterfaceContainer staNodeInterface;
-    Ipv4InterfaceContainer apNodeInterface;
-
-    staNodeInterface = address.Assign(staDevice);
-    apNodeInterface = address.Assign(apDevice);
-
-    if (CW)
-    {
-        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
-        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
-    }
+    set_nodes(channelWidth, rng, simSeed, wifiStaNode, wifiApNode, phy, mac, wifi, apDevice);
 
     ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
     Scenario *wifiScenario = helper.getScenario(scenario);
 
-    wifiScenario->installScenario(simulationTime, envStepTime, MakeCallback(&packetReceived));
+    int end_delay = 0;
+    if (!dry_run)
+    {
+        if (non_zero_start)
+            end_delay = envStepTime * history_length + 1.0;
+        else
+            end_delay = 1.0;
+    }
+
+    wifiScenario->installScenario(simulationTime + end_delay + envStepTime, envStepTime, MakeCallback(&packetReceived));
 
     Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
 
@@ -401,44 +467,7 @@ int main(int argc, char *argv[])
 
     Ptr<FlowMonitor> monitor;
     FlowMonitorHelper flowmon;
-    monitor = flowmon.InstallAll();
-    monitor->SetAttribute("StartTime", TimeValue(Seconds(warmup)));
-
-    if (tracing)
-    {
-        phy.SetPcapDataLinkType(WifiPhyHelper::DLT_IEEE802_11_RADIO);
-        phy.EnablePcap("cw", apDevice.Get(0));
-    }
-
-    Ptr<OpenGymInterface> openGymInterface = CreateObject<OpenGymInterface>(openGymPort);
-    openGymInterface->SetGetActionSpaceCb(MakeCallback(&MyGetActionSpace));
-    openGymInterface->SetGetObservationSpaceCb(MakeCallback(&MyGetObservationSpace));
-    openGymInterface->SetGetGameOverCb(MakeCallback(&MyGetGameOver));
-    openGymInterface->SetGetObservationCb(MakeCallback(&MyGetObservation));
-    openGymInterface->SetGetRewardCb(MakeCallback(&MyGetReward));
-    openGymInterface->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
-    openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
-
-    int end_delay = 0;
-    if (!dry_run)
-    {
-        if (non_zero_start)
-        {
-            Simulator::Schedule(Seconds(1.0), &recordHistory);
-            Simulator::Schedule(Seconds(envStepTime*history_length+1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-            end_delay = 2;
-        }
-        else
-        {
-            Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-            end_delay = 1;
-        }
-    }
-
-    Simulator::Stop(Seconds(simulationTime + end_delay + envStepTime));
-
-    NS_LOG_UNCOND("Simulation started");
-    Simulator::Run();
+    set_sim(tracing, dry_run, warmup, openGymPort, phy, apDevice, end_delay, monitor, flowmon);
 
     double flowThr;
 
