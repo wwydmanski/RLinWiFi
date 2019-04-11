@@ -44,6 +44,7 @@ class Logger:
         self.experiment.log_metric("Speed", speed, step=step)
 
         self.sent_mb = 0
+        self.last_speed = speed
 
     def end(self):
         self.experiment.end()
@@ -66,6 +67,7 @@ class Teacher:
         self.action = None              # For debug purposes
 
     def train(self, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
+        self.agent.reset_parameters()
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(*tags, **parameters)
@@ -109,6 +111,7 @@ class Teacher:
 
         logger.end()
         print("Training finished.")
+        return logger
 
 class AlreadyRunningException(Exception):
     def __init__(self, *args, **kwargs):

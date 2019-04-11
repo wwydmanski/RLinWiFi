@@ -17,7 +17,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Config:
     def __init__(self, buffer_size=int(2e3), batch_size=64, gamma=0.99, tau=1e-3, lr_actor=1e-5, lr_critic=4e-3, update_every=4):
-        self.BUFFER_SIZE = int(buffer_size)
+        self.BUFFER_SIZE = int(float(buffer_size))      # Fix for scientific notation
         self.BATCH_SIZE = batch_size
         self.GAMMA = gamma
         self.TAU = tau
@@ -64,6 +64,19 @@ class Agent:
         self.episodes_passed = 1
 
         self.notifications = 0
+    
+    def set_config(self, config):
+        self.config = config
+
+        self.memory = ReplayBuffer(
+            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, random_seed)
+
+        self.actor_optimizer = torch.optim.Adam(
+            self.actor_local.parameters(), lr=self.config.LR_ACTOR)
+        self.critic_optimizer = torch.optim.Adam(
+            self.critic_local.parameters(), lr=self.config.LR_CRITIC)
+        self.t_step = 0
+
 
     def act(self, state, add_noise):
         """Get action according to actor policy
@@ -162,6 +175,12 @@ class Agent:
 
     def get_loss(self):
         return {"actor_loss": self.actor_loss, "critic_loss": self.critic_loss}
+
+    def reset_parameters(self):
+        self.actor_local.reset_parameters()
+        self.actor_target.reset_parameters()
+        self.critic_local.reset_parameters()
+        self.critic_target.reset_parameters()
 
 
 class OUNoise:
