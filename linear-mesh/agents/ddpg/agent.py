@@ -181,7 +181,18 @@ class Agent:
         self.actor_target.reset_parameters()
         self.critic_local.reset_parameters()
         self.critic_target.reset_parameters()
+        self.memory = ReplayBuffer(
+            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, random_seed)
 
+        self.actor_optimizer = torch.optim.Adam(
+            self.actor_local.parameters(), lr=self.config.LR_ACTOR)
+        self.critic_optimizer = torch.optim.Adam(
+            self.critic_local.parameters(), lr=self.config.LR_CRITIC)
+        self.t_step = 0
+
+        self.episodes_passed = 1
+
+        self.notifications = 0
 
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
