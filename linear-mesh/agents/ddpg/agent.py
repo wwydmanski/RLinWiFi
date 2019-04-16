@@ -29,27 +29,39 @@ class Config:
 class Agent:
     TYPE = "continuous"
 
-    def __init__(self, state_size, action_size, config=Config(), random_seed=42):
+    def __init__(self, state_size, action_size, config=Config(), random_seed=42, actor_layers=None, critic_layers=None):
         self.config = config
 
         self.action_size = action_size
         self.noise = OUNoise(action_size, random_seed, 0.1, 0.3, 0.7)
 
-        self.actor_local = Actor(
-            state_size, action_size, random_seed).to(device)
-        self.actor_target = Actor(
-            state_size, action_size, random_seed).to(device)
+        if actor_layers is None:
+            self.actor_local = Actor(
+                state_size, action_size, random_seed).to(device)
+            self.actor_target = Actor(
+                state_size, action_size, random_seed).to(device)
+        else:
+            self.actor_local = Actor(
+                state_size, action_size, random_seed, *actor_layers).to(device)
+            self.actor_target = Actor(
+                state_size, action_size, random_seed, *actor_layers).to(device)
 
-        self.critic_local = Critic(
-            state_size, action_size, random_seed).to(device)
-        self.critic_target = Critic(
-            state_size, action_size, random_seed).to(device)
+        if critic_layers is None:
+            self.critic_local = Critic(
+                state_size, action_size, random_seed).to(device)
+            self.critic_target = Critic(
+                state_size, action_size, random_seed).to(device)
+        else:
+            self.critic_local = Critic(
+                state_size, action_size, random_seed, *critic_layers).to(device)
+            self.critic_target = Critic(
+                state_size, action_size, random_seed, *critic_layers).to(device)
 
         self.critic_loss = 0
         self.actor_loss = 0
 
         # HARD update
-        self.soft_update(self.actor_target, self.actor_target, 1.0)
+        self.soft_update(self.actor_local, self.actor_target, 1.0)
         self.soft_update(self.critic_local, self.critic_target, 1.0)
 
         self.memory = ReplayBuffer(
@@ -69,7 +81,7 @@ class Agent:
         self.config = config
 
         self.memory = ReplayBuffer(
-            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, random_seed)
+            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, 42)
 
         self.actor_optimizer = torch.optim.Adam(
             self.actor_local.parameters(), lr=self.config.LR_ACTOR)
@@ -182,7 +194,7 @@ class Agent:
         self.critic_local.reset_parameters()
         self.critic_target.reset_parameters()
         self.memory = ReplayBuffer(
-            action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, random_seed)
+            self.action_size, self.config.BUFFER_SIZE, self.config.BATCH_SIZE, 42)
 
         self.actor_optimizer = torch.optim.Adam(
             self.actor_local.parameters(), lr=self.config.LR_ACTOR)

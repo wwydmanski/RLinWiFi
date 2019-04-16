@@ -58,16 +58,13 @@ class Teacher:
         num_agents (int): number of agents present at once
     """
 
-    def __init__(self, agent, env, num_agents):
-        self.agent = agent
+    def __init__(self, env, num_agents):
         self.env = env
         self.num_agents = num_agents
-        self.SCRIPT_RUNNING = True
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def train(self, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
-        self.agent.reset_parameters()
+    def train(self, agent, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(*tags, **parameters)
@@ -88,26 +85,25 @@ class Teacher:
 
             with tqdm.trange(steps_per_ep) as t:
                 for step in t:
-                    self.actions = self.agent.act(np.array(obs, dtype=np.float32), True)
+                    self.actions = agent.act(np.array(obs, dtype=np.float32), True)
                     next_obs, reward, done, info = self.env.step(self.actions)
 
                     if self.last_actions is not None:
-                        self.agent.step(obs, self.last_actions, reward,
+                        agent.step(obs, self.last_actions, reward,
                                         next_obs, done)
                     obs = next_obs  
                     cumulative_reward += np.mean(reward)
 
                     self.last_actions = self.actions
 
-                    logger.log_round(reward, cumulative_reward, info, self.agent.get_loss(), i*steps_per_ep+step)
+                    logger.log_round(reward, cumulative_reward, info, agent.get_loss(), i*steps_per_ep+step)
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
 
-            self.agent.reset()
+            agent.reset()
             self.env.close()
             print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/simTime:.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
 
             logger.log_episode(cumulative_reward, logger.sent_mb/simTime, i)
-            self.env.SCRIPT_RUNNING = False
 
         logger.end()
         print("Training finished.")

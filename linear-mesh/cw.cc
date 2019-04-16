@@ -372,7 +372,7 @@ int main(int argc, char *argv[])
     int warmup = 1;
 
     uint32_t openGymPort = 5555;
-    uint32_t simSeed = time(NULL);
+    uint32_t simSeed = 42;
 
     signal(SIGTERM, signalHandler);
 

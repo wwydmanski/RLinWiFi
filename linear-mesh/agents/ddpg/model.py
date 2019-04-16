@@ -4,9 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-import tensorflow as tf
-from tensorflow.python.saved_model import tag_constants
-
 
 def hidden_init(layer):
     fan_in = layer.weight.data.size()[0]
@@ -16,7 +13,7 @@ def hidden_init(layer):
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, seed, fc_units=256, fc2_units=128, fc3_units=64):
+    def __init__(self, state_size, action_size, seed, fc_units=128, fc2_units=64, fc3_units=32):
         """Initialize parameters and build model.
         
         Args:
@@ -63,7 +60,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, seed, fcs1_units=512, fc2_units=256, fc3_units=128):
+    def __init__(self, state_size, action_size, seed, fcs1_units=512, fc2_units=256, fc3_units=64):
         """Initialize parameters and build model.
         Params
         ======
