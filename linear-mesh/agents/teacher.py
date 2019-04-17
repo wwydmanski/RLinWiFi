@@ -1,10 +1,8 @@
 import numpy as np
 import tqdm
-import matplotlib.pyplot as plt
 import subprocess
 from comet_ml import Experiment
 from ns3gym import ns3env
-import time
 
 class Logger:
     def __init__(self, *tags, **parameters):
