@@ -26,9 +26,10 @@ class Actor(nn.Module):
         """
         super(Actor, self).__init__()
         self.fc_units = fc_units
+        self.state_size = int(state_size/2)
         self.seed = torch.manual_seed(seed)
-        self.norm = torch.nn.BatchNorm1d(state_size)
-        self.lstm1 = nn.LSTM(1, fc_units)
+        self.norm = torch.nn.BatchNorm1d(self.state_size)
+        self.lstm1 = nn.LSTM(2, fc_units)
         self.norm1 = torch.nn.BatchNorm1d(fc_units)
         self.fc2 = nn.Linear(fc_units, fc2_units)
         self.norm2 = torch.nn.BatchNorm1d(fc2_units)
@@ -54,7 +55,7 @@ class Actor(nn.Module):
         # for i in state:
         #     x, hidden = self.lstm1(i.view(1, 1, -1), hidden)
         # print(hidden.size())
-        inp = state.view(state.size()[-1], -1, 1)
+        inp = state.view(self.state_size, -1, 2)
         x, _ = self.lstm1(inp, (h0, c0))
         x = self.norm1(F.relu(x[-1]))
         x = self.fc2(x)

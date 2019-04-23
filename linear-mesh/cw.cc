@@ -18,6 +18,7 @@
 #include <iomanip> // put_time
 #include <deque>
 #include <algorithm>
+#include <csignal>
 #include "scenario.h"
 
 using namespace std;
@@ -32,7 +33,7 @@ void recordHistory();
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
 uint32_t CW = 16;
-uint32_t history_length = 10;
+uint32_t history_length = 20;
 string type = "discrete";
 bool non_zero_start = false;
 
@@ -190,7 +191,7 @@ void recordHistory()
     static uint32_t calls = 0;
     calls++;
 
-    uint32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
+    int32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
 
     // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     float ratio;
@@ -207,6 +208,8 @@ void recordHistory()
     last_tx = g_txPktNum;
 
     history.push_front(ratio);
+    history.push_front(g_txPktNum - last_tx);
+    history.pop_back();
     history.pop_back();
 
     if (calls < history_length && non_zero_start)
@@ -392,6 +395,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("dryRun", "Execute scenario with BEB and no agent interaction", dry_run);
 
     cmd.Parse(argc, argv);
+    // history_length*=2;
 
     NS_LOG_UNCOND("Ns3Env parameters:");
     NS_LOG_UNCOND("--simulationTime: " << simulationTime);
