@@ -67,12 +67,16 @@ class Teacher:
 
         logger = Logger(*tags, **parameters)
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
+        add_noise = True
 
         for i in range(EPISODE_COUNT):
             try:
                 self.env.run()
             except AlreadyRunningException as e:
                 pass
+
+            if i>EPISODE_COUNT-5:
+                add_noise = False
 
             cumulative_reward = 0
             reward = 0
@@ -83,7 +87,7 @@ class Teacher:
 
             with tqdm.trange(steps_per_ep) as t:
                 for step in t:
-                    self.actions = agent.act(np.array(obs, dtype=np.float32), True)
+                    self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                     next_obs, reward, done, info = self.env.step(self.actions)
 
                     if self.last_actions is not None:

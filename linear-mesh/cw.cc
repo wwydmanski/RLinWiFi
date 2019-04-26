@@ -165,9 +165,12 @@ Ptr<OpenGymDataContainer> MyGetObservation()
     };
     Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
-    for (uint32_t i = 0; i < history_length; i++)
-        box->AddValue(history[i]);
-
+    for (uint32_t i = 0; i < history_length; i++){
+        if(history[i]>0 && history[i]<1000)
+            box->AddValue(history[i]);
+        else
+            box->AddValue(0);
+    }
     NS_LOG_UNCOND("MyGetObservation: " << box);
     return box;
 }
@@ -194,23 +197,24 @@ void recordHistory()
     int32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
 
     // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
-    float ratio;
-    if (g_txPktNum == last_tx)
-    {
-        ratio = 0;
-    }
-    else
-    {
-        ratio = ((float)errs) / ((float)(g_txPktNum - last_tx));
-    }
+    // float ratio;
+    // if (g_txPktNum == last_tx)
+    // {
+    //     ratio = 0;
+    //     errs = 0;
+    // }
+    // else
+    // {
+    //     ratio = ((float)errs) / ((float)(g_txPktNum - last_tx));
+    // }
+
+    history.push_front(g_txPktNum - last_tx);
+    history.push_front(errs);
+    history.pop_back();
+    history.pop_back();
 
     last_rx = g_rxPktNum;
     last_tx = g_txPktNum;
-
-    history.push_front(ratio);
-    history.push_front(g_txPktNum - last_tx);
-    history.pop_back();
-    history.pop_back();
 
     if (calls < history_length && non_zero_start)
     {
@@ -464,7 +468,8 @@ int main(int argc, char *argv[])
 
     wifiScenario->installScenario(simulationTime + end_delay + envStepTime, envStepTime, MakeCallback(&packetReceived));
 
-    Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
+    // Config::ConnectWithoutContext("/NodeList/0/ApplicationList/*/$ns3::OnOffApplication/Tx", MakeCallback(&packetSent));
+    Config::ConnectWithoutContext("/NodeList/*/DeviceList/*/$ns3::WifiNetDevice/Phy/PhyTxBegin", MakeCallback(&packetSent));
 
     wifiScenario->PopulateARPcache();
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
