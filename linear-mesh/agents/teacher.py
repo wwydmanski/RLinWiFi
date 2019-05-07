@@ -118,7 +118,7 @@ class AlreadyRunningException(Exception):
 class EnvWrapper:
     def __init__(self, no_threads, **params):
         self.no_threads = no_threads
-        self.ports = [1025+i for i in range(no_threads)]
+        self.ports = [33968+i+np.random.randint(500) for i in range(no_threads)]
         self.commands = self._craft_commands(params)
 
         self.SCRIPT_RUNNING = False
