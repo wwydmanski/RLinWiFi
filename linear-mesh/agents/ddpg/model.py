@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def hidden_init(layer):
     fan_in = layer.weight.data.size()[0]
@@ -62,16 +63,16 @@ class Actor(nn.Module):
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
         # flipped = np.flip(state.cpu().numpy(), 0)
-        # state = torch.from_numpy(flipped.copy()).cuda()
+        # state = torch.from_numpy(flipped.copy()).to(device)
 
-        h0 = torch.randn(1, state.size()[0], self.fc_units).cuda()
-        c0 = torch.randn(1, state.size()[0], self.fc_units).cuda()
+        h0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
+        c0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
 
         # for i in state:
         #     x, hidden = self.lstm1(i.view(1, 1, -1), hidden)
         # print(hidden.size())
         inp = state.view(self.state_size, -1, 2).cpu().numpy()
-        inp = torch.from_numpy(signal_to_stats(inp).copy()).cuda()
+        inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
 
         x, _ = self.lstm1(inp, (h0, c0))
         x = self.norm1(F.relu(x[-1]))
@@ -119,16 +120,16 @@ class Critic(nn.Module):
 
     def forward(self, state, action):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
-        # state = torch.from_numpy(np.flip(state.cpu().numpy(), 0).copy()).cuda()
+        # state = torch.from_numpy(np.flip(state.cpu().numpy(), 0).copy()).to(device)
 
-        h0 = torch.randn(1, state.size()[0], self.fc_units).cuda()
-        c0 = torch.randn(1, state.size()[0], self.fc_units).cuda()
+        h0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
+        c0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
 
         # for i in state:
         #     x, hidden = self.lstm1(i.view(1, 1, -1), hidden)
         # print(hidden.size())
         inp = state.view(self.state_size, -1, 2).cpu().numpy()
-        inp = torch.from_numpy(signal_to_stats(inp).copy()).cuda()
+        inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
 
         xs, _ = self.lstm1(inp, (h0, c0))
         xs = self.norm1(F.relu(xs[-1]))

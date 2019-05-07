@@ -32,7 +32,7 @@ void recordHistory();
 
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
-uint32_t CW = 16;
+uint32_t CW = 0;
 uint32_t history_length = 20;
 string type = "discrete";
 bool non_zero_start = false;
@@ -100,33 +100,33 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
     NS_LOG_UNCOND("MyExecuteActions: " << action);
 
-    Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
-    std::vector<float> actionVector = box->GetData();
+    // Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
+    // std::vector<float> actionVector = box->GetData();
 
-    if (type == "discrete")
-    {
-        if (actionVector.at(0) == 0)
-            CW /= 2;
-        else if (actionVector.at(0) == 2)
-            CW *= 2;
-    }
-    else if (type == "continuous")
-    {
-        CW = pow(2, actionVector.at(0) * 3 + 7);
-    }
-    else
-    {
-        std::cout << "Unsupported agent type!" << endl;
-        exit(0);
-    }
+    // if (type == "discrete")
+    // {
+    //     if (actionVector.at(0) == 0)
+    //         CW /= 2;
+    //     else if (actionVector.at(0) == 2)
+    //         CW *= 2;
+    // }
+    // else if (type == "continuous")
+    // {
+    //     CW = pow(2, actionVector.at(0) * 3 + 7);
+    // }
+    // else
+    // {
+    //     std::cout << "Unsupported agent type!" << endl;
+    //     exit(0);
+    // }
 
-    uint32_t min_cw = 16;
-    uint32_t max_cw = 1024;
+    // uint32_t min_cw = 16;
+    // uint32_t max_cw = 1024;
 
-    CW = min(max_cw, max(CW, min_cw));
+    // CW = min(max_cw, max(CW, min_cw));
 
-    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
-    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
+    // Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
+    // Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     return true;
 }
 
@@ -196,20 +196,20 @@ void recordHistory()
 
     int32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
 
-    // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
-    // float ratio;
-    // if (g_txPktNum == last_tx)
-    // {
-    //     ratio = 0;
-    //     errs = 0;
-    // }
-    // else
-    // {
-    //     ratio = ((float)errs) / ((float)(g_txPktNum - last_tx));
-    // }
+    history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
+    float ratio;
+    if (g_txPktNum == last_tx)
+    {
+        ratio = 0;
+        errs = 0;
+    }
+    else
+    {
+        ratio = ((float)errs) / ((float)(g_txPktNum - last_tx));
+    }
 
     history.push_front(g_txPktNum - last_tx);
-    history.push_front(errs);
+    history.push_front(ratio);
     history.pop_back();
     history.pop_back();
 

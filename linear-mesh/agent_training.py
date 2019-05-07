@@ -20,22 +20,22 @@ scenario = "convergence"
 
 simTime = 10 # seconds
 stepTime = 0.01  # seconds
-history_length = 10
+history_length = 100
 
 
-EPISODE_COUNT = 20
+EPISODE_COUNT = 15
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
     "simTime": simTime,
     "envStepTime": stepTime,
-    "historyLength": 10,
+    "historyLength": history_length,
     "agentType": Agent.TYPE,
     "nonZeroStart": True,
     "scenario": "convergence",
-    "nWifi": 7
+    "nWifi": 50
 }
-print("Steps per episode:", steps_per_ep)
+print("Steps per episode:", steps_per_ep) 
 
 threads_no = 1
 env = EnvWrapper(threads_no, **sim_args)
@@ -43,7 +43,7 @@ env = EnvWrapper(threads_no, **sim_args)
 
 #%%
 # config = Config(buffer_size=2e3, batch_size=64, gamma=0.99, tau=1e-3, lr=5e-4)
-config = Config(buffer_size=1.5e4*threads_no, batch_size=512, gamma=0.99, tau=1e-3, lr_actor=6e-5, lr_critic=1e-3)
+# config = Config(buffer_size=1.5e4*threads_no, batch_size=64, gamma=0.99, tau=1e-3, lr_actor=6e-5, lr_critic=1e-3)
 
 
 #%%
@@ -87,27 +87,32 @@ optimizer = Optimizer("OZwyhJHyqzPZgHEpDFL1zxhyI")
 # critic_fc2 integer [1, 4] [2]
 # critic_fc3 integer [1, 4] [2]
 
+# params = """
+# lr_actor real [1e-5, 5e-4] [6e-5] log
+# lr_critic real [5e-4, 1e-3] [8e-4] log
+# """
 params = """
-lr_actor real [1e-6, 1e-4] [6e-5] log
-lr_critic real [1e-5, 1e-3] [8e-4] log
+lr_actor real [1e-4, 5e-3] [1e-3] log
+lr_critic real [1e-3, 5e-2] [8e-3] log
 """
 optimizer.set_params(params)
 
 teacher = Teacher(env, 1)
 
-# agent = Agent(Network, history_length, action_size=3, config=config)
-# agent.set_epsilon(0.9, 0.01, 25)
-# teacher.train(EPISODE_COUNT, simTime, stepTime, "Inp: window Mb sent", "Rew: normalized speed", "DQN", "Convergence", "Instances: 2", "Net: 128, 64, 32")
-
 while True:
-    # Get a suggestion
     suggestion = optimizer.get_suggestion()
-    config = Config(buffer_size=1.5e3*threads_no, batch_size=512, gamma=0.99, tau=1e-3, lr_actor=suggestion["lr_actor"], lr_critic=suggestion["lr_critic"])
     
-#     actor_l = [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
-#     critic_l = [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
-    actor_l = [128, 64, 32]
-    critic_l = [512, 256, 64]
+    actor_l = [32, 16, 8]        # [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
+    critic_l = [32, 16, 8]      # [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
+    
+    lr_actor = suggestion["lr_actor"]
+    lr_critic = suggestion["lr_critic"]
+    
+#     lr_actor = 3e-4
+#     lr_critic = 4e-3
+    
+    config = Config(buffer_size=1.5e4*threads_no, batch_size=256, gamma=0.99, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic)
+    
     print("Params:")
     for k, v in suggestion.params.items():
         print(f"{k}: {v}")
@@ -115,8 +120,10 @@ while True:
     agent = Agent(history_length, action_size=1, config=config, actor_layers = actor_l, critic_layers = critic_l)
 
     # Test the model
-    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "Inp: collisions mb", "Rew: normalized speed", "DDPG", "Convergence", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
-                          **config.__dict__)
+#     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "Inp: collisions mb", "Rew: normalized speed", "DDPG", "Convergence", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}", "LSTM",
+#                            f"Station count: {sim_args['nWifi']}",
+#                           **config.__dict__)
+    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
     
     # Report the score back
     suggestion.report_score("last_speed", logger.last_speed)
