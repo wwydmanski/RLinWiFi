@@ -105,11 +105,11 @@ while True:
     actor_l = [32, 16, 8]        # [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
     critic_l = [32, 16, 8]      # [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
     
-    lr_actor = suggestion["lr_actor"]
-    lr_critic = suggestion["lr_critic"]
+    # lr_actor = suggestion["lr_actor"]
+    # lr_critic = suggestion["lr_critic"]
     
-#     lr_actor = 3e-4
-#     lr_critic = 4e-3
+    lr_actor = 3e-4
+    lr_critic = 4e-3
     
     config = Config(buffer_size=1.5e4*threads_no, batch_size=256, gamma=0.99, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic)
     
@@ -120,10 +120,10 @@ while True:
     agent = Agent(history_length, action_size=1, config=config, actor_layers = actor_l, critic_layers = critic_l)
 
     # Test the model
-#     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "Inp: collisions mb", "Rew: normalized speed", "DDPG", "Convergence", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}", "LSTM",
-#                            f"Station count: {sim_args['nWifi']}",
-#                           **config.__dict__)
-    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
+    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "Inp: collisions mb", "Rew: normalized speed", "DDPG", "Convergence", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}", "LSTM",
+                           f"Station count: {sim_args['nWifi']}",
+                          **config.__dict__)
+    # logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
     
     # Report the score back
     suggestion.report_score("last_speed", logger.last_speed)

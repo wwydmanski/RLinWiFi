@@ -100,33 +100,33 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
     NS_LOG_UNCOND("MyExecuteActions: " << action);
 
-    // Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
-    // std::vector<float> actionVector = box->GetData();
+    Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
+    std::vector<float> actionVector = box->GetData();
 
-    // if (type == "discrete")
-    // {
-    //     if (actionVector.at(0) == 0)
-    //         CW /= 2;
-    //     else if (actionVector.at(0) == 2)
-    //         CW *= 2;
-    // }
-    // else if (type == "continuous")
-    // {
-    //     CW = pow(2, actionVector.at(0) * 3 + 7);
-    // }
-    // else
-    // {
-    //     std::cout << "Unsupported agent type!" << endl;
-    //     exit(0);
-    // }
+    if (type == "discrete")
+    {
+        if (actionVector.at(0) == 0)
+            CW /= 2;
+        else if (actionVector.at(0) == 2)
+            CW *= 2;
+    }
+    else if (type == "continuous")
+    {
+        CW = pow(2, actionVector.at(0) * 3 + 7);
+    }
+    else
+    {
+        std::cout << "Unsupported agent type!" << endl;
+        exit(0);
+    }
 
-    // uint32_t min_cw = 16;
-    // uint32_t max_cw = 1024;
+    uint32_t min_cw = 16;
+    uint32_t max_cw = 1024;
 
-    // CW = min(max_cw, max(CW, min_cw));
+    CW = min(max_cw, max(CW, min_cw));
 
-    // Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
-    // Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
+    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
+    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     return true;
 }
 
