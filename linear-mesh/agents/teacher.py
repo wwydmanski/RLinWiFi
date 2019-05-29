@@ -3,6 +3,43 @@ import tqdm
 import subprocess
 from comet_ml import Experiment
 from ns3gym import ns3env
+import matplotlib.pyplot as plt
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
+def signal_to_stats(signal, ax=None):
+    window = max(len(signal)//2, 2)
+    res = []
+
+    lowess_0 = [lowess(
+                    signal[:, batch, 0], 
+                    np.array([i for i in range(len(signal[:, batch, 0]))]), 
+                    frac=0.4, 
+                    return_sorted=False) 
+                for batch in range(0, signal.shape[1])]
+
+    lowess_1 = [lowess(
+                    signal[:, batch, 1],
+                    np.array([i for i in range(len(signal[:, batch, 1]))]), 
+                    frac=0.4, 
+                    return_sorted=False) 
+                for batch in range(0, signal.shape[1])]
+
+    for i in range(0, len(signal), window//2):
+        res.append([
+            [np.mean(lowess_0[batch][i:i+window]),
+             np.std(lowess_0[batch][i:i+window]),
+             np.mean(lowess_1[batch][i:i+window]),
+             np.std(lowess_1[batch][i:i+window])] for batch in range(0, signal.shape[1])])
+    res = np.array(res)
+
+    # if ax is not None:
+    #     ax.clear()
+    #     ax.plot(np.array([i for i in range(0, len(signal[:, 0, 1]))], -1), signal[:, 0, 1], c='b')
+    #     ax.plot(np.array([i for i in range(0, len(lowess_1[0]))], -1), lowess_1[0], c='r')
+    #     ax.plot(np.array([i for i in range(0, len(lowess_1[0]))], -1), res[:, 0, 2], c='g')
+
+    #     plt.pause(0.001)
+    return res
 
 class Logger:
     def __init__(self, *tags, **parameters):
@@ -19,7 +56,7 @@ class Logger:
         self.experiment.log_parameter("Episode count", episode_count)
         self.experiment.log_parameter("Steps per episode", steps_per_ep)
 
-    def log_round(self, reward, cumulative_reward, info, loss, step):
+    def log_round(self, reward, cumulative_reward, info, loss, observations, step):
 
         try:
             round_mb = np.mean([float(i.split("|")[0]) for i in info])
@@ -35,6 +72,10 @@ class Logger:
         self.experiment.log_metric("Megabytes sent", self.sent_mb, step=step)
         self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
         self.experiment.log_metric("Chosen CW", CW, step=step)
+
+        for i, obs in enumerate(observations):
+            self.experiment.log_metric(f"Observation {i}", obs, step=step)
+
         self.experiment.log_metrics(loss, step=step)
 
     def log_episode(self, cumulative_reward, speed, step):
@@ -62,12 +103,14 @@ class Teacher:
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def train(self, agent, EPISODE_COUNT, simTime, stepTime, *tags, **parameters):
+    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, *tags, **parameters):
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(*tags, **parameters)
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
         add_noise = True
+
+        obs_dim = 2
 
         for i in range(EPISODE_COUNT):
             try:
@@ -83,22 +126,29 @@ class Teacher:
             sent_mb = 0
 
             obs = self.env.reset()
+            obs = signal_to_stats(np.reshape(obs, (-1, 1, obs_dim)))
+
             self.last_actions = None
 
             with tqdm.trange(steps_per_ep) as t:
                 for step in t:
+                    self.debug = obs
+
                     self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                     next_obs, reward, done, info = self.env.step(self.actions)
 
-                    if self.last_actions is not None:
-                        agent.step(obs, self.last_actions, reward,
-                                        next_obs, done)
+                    next_obs = signal_to_stats(np.reshape(next_obs, (-1, 1, obs_dim)))
+
+                    if self.last_actions is not None and step>(history_length/obs_dim):
+                        agent.step(np.expand_dims(obs, 0), self.last_actions, reward,
+                                        np.expand_dims(next_obs, 0), done)
                     obs = next_obs  
                     cumulative_reward += np.mean(reward)
 
                     self.last_actions = self.actions
 
-                    logger.log_round(reward, cumulative_reward, info, agent.get_loss(), i*steps_per_ep+step)
+                    if step>(history_length/obs_dim):
+                        logger.log_round(reward, cumulative_reward, info, agent.get_loss(), obs[0][0][::2], i*steps_per_ep+step)
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
 
             agent.reset()

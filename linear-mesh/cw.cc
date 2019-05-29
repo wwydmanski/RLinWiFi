@@ -37,7 +37,7 @@ uint32_t history_length = 20;
 string type = "discrete";
 bool non_zero_start = false;
 
-deque<float> history(history_length, 0.0);
+deque<float> history;
 
 /*
 Define observation space
@@ -141,7 +141,7 @@ float MyGetReward(void)
     // float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
 
     // last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - 0.5;
-    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime)*10-0.5;
+    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime) * 10 - 0.5;
 
     last_packets = g_rxPktNum;
 
@@ -165,11 +165,16 @@ Ptr<OpenGymDataContainer> MyGetObservation()
     };
     Ptr<OpenGymBoxContainer<float>> box = CreateObject<OpenGymBoxContainer<float>>(shape);
 
-    for (uint32_t i = 0; i < history_length; i++){
-        if(history[i]>0 && history[i]<1000)
+    for (uint32_t i = 0; i < history.size(); i++)
+    {
+        if (history[i] >= -100 && history[i] <= 100)
             box->AddValue(history[i]);
         else
             box->AddValue(0);
+    }
+    for (uint32_t i = history.size(); i < history_length; i++)
+    {
+        box->AddValue(0);
     }
     NS_LOG_UNCOND("MyGetObservation: " << box);
     return box;
@@ -194,9 +199,11 @@ void recordHistory()
     static uint32_t calls = 0;
     calls++;
 
-    int32_t errs = g_txPktNum - last_tx - g_rxPktNum + last_rx;
+    float received = g_rxPktNum - last_rx;
+    float sent = g_txPktNum - last_tx;
+    float errs = sent - received;
 
-    history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
+    // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     float ratio;
     if (g_txPktNum == last_tx)
     {
@@ -205,14 +212,18 @@ void recordHistory()
     }
     else
     {
-        ratio = ((float)errs) / ((float)(g_txPktNum - last_tx));
+        ratio = errs / sent;
     }
 
-    history.push_front(g_txPktNum - last_tx);
+    // history.push_front(g_txPktNum - last_tx);
     history.push_front(ratio);
-    history.pop_back();
-    history.pop_back();
+    history.push_front(received);
 
+    if (history.size() > history_length)
+    {
+        history.pop_back();
+        history.pop_back();
+    }
     last_rx = g_rxPktNum;
     last_tx = g_txPktNum;
 
@@ -349,15 +360,16 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
             Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
 
-    Simulator::Stop(Seconds(simulationTime + end_delay + envStepTime + 1.0));
+    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0));
 
     NS_LOG_UNCOND("Simulation started");
     Simulator::Run();
 }
 
-void signalHandler( int signum ) {
-   cout << "Interrupt signal " << signum << " received.\n";
-   exit(signum);  
+void signalHandler(int signum)
+{
+    cout << "Interrupt signal " << signum << " received.\n";
+    exit(signum);
 }
 
 int main(int argc, char *argv[])

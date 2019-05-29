@@ -11,22 +11,24 @@ def hidden_init(layer):
     lim = 1. / np.sqrt(fan_in)
     return (-lim, lim)
 
-def signal_to_stats(signal):
-    window = len(signal)//2
-    res = []
-    for i in range(0, len(signal), window//2):
-        res.append([
-            [np.mean(signal[i:i+window, batch, 0]),
-             np.std(signal[i:i+window, batch, 0]),
-             np.mean(signal[i:i+window, batch, 1]),
-             np.std(signal[i:i+window, batch, 1])] for batch in range(0, signal.shape[1])])
+# def signal_to_stats(signal):
+#     window = len(signal)//4
+#     res = []
+#     for i in range(0, len(signal), window//2):
+#         res.append([
+#             [np.mean(signal[i:i+window, batch, 0]),
+#              np.std(signal[i:i+window, batch, 0]),
+#              np.mean(signal[i:i+window, batch, 1]),
+#              np.std(signal[i:i+window, batch, 1]),
+#              np.mean(signal[i:i+window, batch, 2]),
+#              np.std(signal[i:i+window, batch, 2])] for batch in range(0, signal.shape[1])])
 
-    return np.array(res)
+#     return np.array(res)
 
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, seed, fc_units=128, fc2_units=64, fc3_units=32):
+    def __init__(self, state_size, action_size, seed, batch_size, fc_units=128, fc2_units=64, fc3_units=32):
         """Initialize parameters and build model.
 
         Args:
@@ -38,7 +40,8 @@ class Actor(nn.Module):
         """
         super(Actor, self).__init__()
         self.fc_units = fc_units
-        self.state_size = int(state_size/2)
+        self.batch_size = batch_size
+        self.state_size = int(state_size/3)
         # self.state_size = np.ceil(state_size/(state_size//4)).astype(int)
         self.seed = torch.manual_seed(seed)
         self.norm = torch.nn.BatchNorm1d(np.ceil(state_size/(state_size//4)).astype(int))
@@ -62,22 +65,18 @@ class Actor(nn.Module):
 
     def forward(self, state):
         """Build an actor (policy) network that maps states -> actions."""
-        # flipped = np.flip(state.cpu().numpy(), 0)
-        # state = torch.from_numpy(flipped.copy()).to(device)
+        h0 = torch.randn(1, state.shape[1], self.fc_units).to(device)
+        c0 = torch.randn(1, state.shape[1], self.fc_units).to(device)
 
-        h0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
-        c0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
+        # inp = state.view(self.state_size, -1, 3).cpu().numpy()
+        # inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
 
-        # for i in state:
-        #     x, hidden = self.lstm1(i.view(1, 1, -1), hidden)
-        # print(hidden.size())
-        inp = state.view(self.state_size, -1, 2).cpu().numpy()
-        inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
-
-        x, _ = self.lstm1(inp, (h0, c0))
-        x = self.norm1(F.relu(x[-1]))
+        x, _ = self.lstm1(state, (h0, c0))
+        x = F.relu(x[-1])
+        # x = self.norm1(x)
         x = self.fc2(x)
-        x = self.norm2(F.relu(x))
+        x = F.relu(x)
+        # x = self.norm2(x)
         # return torch.tanh(self.fc3(x))
         x = F.relu(self.fc3(x))
         return torch.tanh(self.fc4(x))
@@ -86,7 +85,7 @@ class Actor(nn.Module):
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, seed, fcs1_units=512, fc2_units=256, fc3_units=64):
+    def __init__(self, state_size, action_size, seed, batch_size, fcs1_units=512, fc2_units=256, fc3_units=64):
         """Initialize parameters and build model.
         Params
         ======
@@ -98,7 +97,8 @@ class Critic(nn.Module):
         """
         super(Critic, self).__init__()
         self.fc_units = fcs1_units
-        self.state_size = int(state_size/2)
+        self.batch_size = batch_size
+        self.state_size = int(state_size/3)
 
         self.seed = torch.manual_seed(seed)
 
@@ -121,19 +121,22 @@ class Critic(nn.Module):
     def forward(self, state, action):
         """Build a critic (value) network that maps (state, action) pairs -> Q-values."""
         # state = torch.from_numpy(np.flip(state.cpu().numpy(), 0).copy()).to(device)
-
-        h0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
-        c0 = torch.randn(1, state.size()[0], self.fc_units).to(device)
+        h0 = torch.randn(1, state.shape[1], self.fc_units).to(device)
+        c0 = torch.randn(1, state.shape[1], self.fc_units).to(device)
 
         # for i in state:
         #     x, hidden = self.lstm1(i.view(1, 1, -1), hidden)
         # print(hidden.size())
-        inp = state.view(self.state_size, -1, 2).cpu().numpy()
-        inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
+        # inp = state.view(self.state_size, -1, 3).cpu().numpy()
+        # inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
+        # print("State shape", state.shape)
 
-        xs, _ = self.lstm1(inp, (h0, c0))
-        xs = self.norm1(F.relu(xs[-1]))
-        x = torch.cat((xs, action), dim=1)
+        xs, _ = self.lstm1(state, (h0, c0))
+        x = F.relu(xs[-1])
+        # xs = self.norm1(x)
+        # print("x shape", x.shape)
+        # print("action shape", action.shape)
+        x = torch.cat((x, action), dim=1)
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
 

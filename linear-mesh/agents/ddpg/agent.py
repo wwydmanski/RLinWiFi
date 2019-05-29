@@ -37,25 +37,25 @@ class Agent:
 
         if actor_layers is None:
             self.actor_local = Actor(
-                state_size, action_size, random_seed).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE).to(device)
             self.actor_target = Actor(
-                state_size, action_size, random_seed).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE).to(device)
         else:
             self.actor_local = Actor(
-                state_size, action_size, random_seed, *actor_layers).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE, *actor_layers).to(device)
             self.actor_target = Actor(
-                state_size, action_size, random_seed, *actor_layers).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE, *actor_layers).to(device)
 
         if critic_layers is None:
             self.critic_local = Critic(
-                state_size, action_size, random_seed).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE).to(device)
             self.critic_target = Critic(
-                state_size, action_size, random_seed).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE).to(device)
         else:
             self.critic_local = Critic(
-                state_size, action_size, random_seed, *critic_layers).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE, *critic_layers).to(device)
             self.critic_target = Critic(
-                state_size, action_size, random_seed, *critic_layers).to(device)
+                state_size, action_size, random_seed, config.BATCH_SIZE, *critic_layers).to(device)
 
         self.critic_loss = 0
         self.actor_loss = 0
@@ -116,6 +116,8 @@ class Agent:
 
     def step(self, states, actions, rewards, next_states, dones):
         for state, action, reward, next_state, done in zip(states, actions, rewards, next_states, dones):
+            assert state.ndim==3
+            assert next_state.ndim==3
             self.memory.add(state, action, reward, next_state, done)
 
         self.t_step += 1
@@ -257,12 +259,12 @@ class ReplayBuffer:
         experiences = random.sample(self.memory, k=self.batch_size)
 
         states = torch.from_numpy(
-            np.vstack([e.state for e in experiences if e is not None])).float().to(device)
+            np.hstack([e.state for e in experiences if e is not None])).float().to(device)
         actions = torch.from_numpy(
             np.vstack([e.action for e in experiences if e is not None])).float().to(device)
         rewards = torch.from_numpy(
             np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
-        next_states = torch.from_numpy(np.vstack(
+        next_states = torch.from_numpy(np.hstack(
             [e.next_state for e in experiences if e is not None])).float().to(device)
         dones = torch.from_numpy(np.vstack(
             [e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
