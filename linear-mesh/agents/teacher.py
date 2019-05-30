@@ -149,7 +149,7 @@ class Teacher:
                     self.last_actions = self.actions
 
                     if step>(history_length/obs_dim):
-                        logger.log_round(reward, cumulative_reward, info, agent.get_loss(), obs[0][0][::2], i*steps_per_ep+step)
+                        logger.log_round(reward, cumulative_reward, info, agent.get_loss(), obs[0][0], i*steps_per_ep+step)
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
 
             agent.reset()
@@ -231,7 +231,7 @@ class EnvWrapper:
     def close(self):
         for env in self.envs:
             env.close()
-        subprocess.Popen(['bash', '-c', "killall linear-mesh"])
+        # subprocess.Popen(['bash', '-c', "killall linear-mesh"])
         
         self.SCRIPT_RUNNING = False
 

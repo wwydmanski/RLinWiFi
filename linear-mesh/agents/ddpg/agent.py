@@ -33,7 +33,7 @@ class Agent:
         self.config = config
 
         self.action_size = action_size
-        self.noise = OUNoise(action_size, random_seed, mu=0, theta=0.3, sigma=0.2)
+        self.noise = OUNoise(action_size, random_seed, mu=0.1, theta=0.3, sigma=0.7)
 
         if actor_layers is None:
             self.actor_local = Actor(
@@ -73,7 +73,7 @@ class Agent:
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
-        self.episodes_passed = 0
+        self.episodes_passed = 1
 
         self.notifications = 0
     
@@ -109,8 +109,8 @@ class Agent:
 
         if add_noise:
             for i in range(action_values.shape[0]):
-                action_values[i] += (self.noise.sample()) / \
-                    np.sqrt(self.episodes_passed+0.1)
+                action_values[i] += (self.noise.sample()-0.5) / \
+                    np.sqrt(self.episodes_passed)
 
         return np.clip(action_values, -1, 1)
 

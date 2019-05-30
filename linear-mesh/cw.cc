@@ -32,10 +32,13 @@ void recordHistory();
 
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
+bool verbose = false;
+
 uint32_t CW = 0;
 uint32_t history_length = 20;
 string type = "discrete";
 bool non_zero_start = false;
+Scenario *wifiScenario;
 
 deque<float> history;
 
@@ -51,7 +54,8 @@ Ptr<OpenGymSpace> MyGetObservationSpace(void)
     };
     std::string dtype = TypeNameGet<float>();
     Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
-    NS_LOG_UNCOND("MyGetObservationSpace: " << space);
+    if (verbose)
+        NS_LOG_UNCOND("MyGetObservationSpace: " << space);
     return space;
 }
 
@@ -67,7 +71,8 @@ Ptr<OpenGymSpace> MyGetActionSpace(void)
     };
     std::string dtype = TypeNameGet<float>();
     Ptr<OpenGymBoxSpace> space = CreateObject<OpenGymBoxSpace>(low, high, shape, dtype);
-    NS_LOG_UNCOND("MyGetActionSpace: " << space);
+    if (verbose)
+        NS_LOG_UNCOND("MyGetActionSpace: " << space);
     return space;
 }
 
@@ -86,9 +91,12 @@ std::string MyGetExtraInfo(void)
     float sentMbytes = obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
 
     std::string myInfo = std::to_string(sentMbytes);
-    myInfo = myInfo + "|" + to_string(CW);
+    myInfo = myInfo + "|" + to_string(CW) + "|";
+    // for (uint32_t i = 0; i < wifiScenario->install_times.size(); i++)
+        // myInfo += to_string(wifiScenario->install_times.at(i)) + " ";
 
-    NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
+    if (verbose)
+        NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
 
     return myInfo;
 }
@@ -98,7 +106,8 @@ Execute received actions
 */
 bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 {
-    NS_LOG_UNCOND("MyExecuteActions: " << action);
+    if (verbose)
+        NS_LOG_UNCOND("MyExecuteActions: " << action);
 
     Ptr<OpenGymBoxContainer<float>> box = DynamicCast<OpenGymBoxContainer<float>>(action);
     std::vector<float> actionVector = box->GetData();
@@ -148,7 +157,8 @@ float MyGetReward(void)
     if (ticks <= 2 * envStepTime)
         return 0.0;
 
-    NS_LOG_UNCOND("MyGetReward: " << last_speed);
+    if (verbose)
+        NS_LOG_UNCOND("MyGetReward: " << last_speed);
 
     return last_speed;
 }
@@ -176,7 +186,8 @@ Ptr<OpenGymDataContainer> MyGetObservation()
     {
         box->AddValue(0);
     }
-    NS_LOG_UNCOND("MyGetObservation: " << box);
+    if (verbose)
+        NS_LOG_UNCOND("MyGetObservation: " << box);
     return box;
 }
 
@@ -202,22 +213,29 @@ void recordHistory()
     float received = g_rxPktNum - last_rx;
     float sent = g_txPktNum - last_tx;
     float errs = sent - received;
+    // int stations_online = 5;
+
+    // for (uint32_t i = 0; i < wifiScenario->install_times.size(); i++)
+        // if (ns3::Simulator::Now().GetSeconds() > wifiScenario->install_times.at(i))
+            // stations_online++;
 
     // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     float ratio;
-    if (g_txPktNum == last_tx)
-    {
-        ratio = 0;
-        errs = 0;
-    }
-    else
-    {
-        ratio = errs / sent;
-    }
+    // if (g_txPktNum == last_tx)
+    // {
+    //     ratio = 0;
+    //     errs = 0;
+    // }
+    // else
+    // {
+    ratio = errs / sent;
+    // }
 
     // history.push_front(g_txPktNum - last_tx);
     history.push_front(ratio);
     history.push_front(received);
+    // history.push_front(stations_online);
+    // history.push_front(stations_online);
 
     if (history.size() > history_length)
     {
@@ -360,7 +378,7 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
             Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
 
-    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0));
+    Simulator::Stop(Seconds(simulationTime + end_delay+1.0 + envStepTime));
 
     NS_LOG_UNCOND("Simulation started");
     Simulator::Run();
@@ -374,7 +392,6 @@ void signalHandler(int signum)
 
 int main(int argc, char *argv[])
 {
-    bool verbose = false;
     int nWifi = 5;
     bool tracing = false;
     bool useRts = false;
@@ -467,7 +484,7 @@ int main(int argc, char *argv[])
     set_nodes(channelWidth, rng, simSeed, wifiStaNode, wifiApNode, phy, mac, wifi, apDevice);
 
     ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
-    Scenario *wifiScenario = helper.getScenario(scenario);
+    wifiScenario = helper.getScenario(scenario);
 
     int end_delay = 0;
     if (!dry_run)
@@ -475,7 +492,7 @@ int main(int argc, char *argv[])
         if (non_zero_start)
             end_delay = envStepTime * history_length + 1.0;
         else
-            end_delay = 1.0;
+            end_delay = 0.0;
     }
 
     wifiScenario->installScenario(simulationTime + end_delay + envStepTime, envStepTime, MakeCallback(&packetReceived));
