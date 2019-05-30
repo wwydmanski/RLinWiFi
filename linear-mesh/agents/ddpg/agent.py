@@ -33,7 +33,7 @@ class Agent:
         self.config = config
 
         self.action_size = action_size
-        self.noise = OUNoise(action_size, random_seed, 0.1, 0.3, 0.7)
+        self.noise = OUNoise(action_size, random_seed, mu=0, theta=0.3, sigma=0.2)
 
         if actor_layers is None:
             self.actor_local = Actor(
@@ -73,7 +73,7 @@ class Agent:
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
-        self.episodes_passed = 1
+        self.episodes_passed = 0
 
         self.notifications = 0
     
@@ -109,16 +109,16 @@ class Agent:
 
         if add_noise:
             for i in range(action_values.shape[0]):
-                action_values[i] += (self.noise.sample()-1) / \
-                    np.sqrt(self.episodes_passed)
+                action_values[i] += (self.noise.sample()) / \
+                    np.sqrt(self.episodes_passed+0.1)
 
         return np.clip(action_values, -1, 1)
 
     def step(self, states, actions, rewards, next_states, dones):
-        for state, action, reward, next_state, done in zip(states, actions, rewards, next_states, dones):
-            assert state.ndim==3
-            assert next_state.ndim==3
-            self.memory.add(state, action, reward, next_state, done)
+        for action, reward, done, i in zip(actions, rewards, dones, range(len(rewards))):
+            assert states[:, i].ndim==2
+            assert next_states[:, i].ndim==2
+            self.memory.add(states[:, i], action, reward, next_states[:, i], done)
 
         self.t_step += 1
 
@@ -145,6 +145,7 @@ class Agent:
 
         max_Qhat = self.critic_target(
             next_states, self.actor_target(next_states))
+
         Q_target = rewards + (gamma * max_Qhat * (1 - dones))
 
         Q_expected = self.critic_local(states, actions)
@@ -259,13 +260,13 @@ class ReplayBuffer:
         experiences = random.sample(self.memory, k=self.batch_size)
 
         states = torch.from_numpy(
-            np.hstack([e.state for e in experiences if e is not None])).float().to(device)
+            np.stack([e.state for e in experiences if e is not None], 1)).float().to(device)
         actions = torch.from_numpy(
             np.vstack([e.action for e in experiences if e is not None])).float().to(device)
         rewards = torch.from_numpy(
             np.vstack([e.reward for e in experiences if e is not None])).float().to(device)
-        next_states = torch.from_numpy(np.hstack(
-            [e.next_state for e in experiences if e is not None])).float().to(device)
+        next_states = torch.from_numpy(np.stack(
+            [e.next_state for e in experiences if e is not None], 1)).float().to(device)
         dones = torch.from_numpy(np.vstack(
             [e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(device)
 

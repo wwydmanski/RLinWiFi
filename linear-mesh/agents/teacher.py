@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 from statsmodels.nonparametric.smoothers_lowess import lowess
 
 def signal_to_stats(signal, ax=None):
-    window = max(len(signal)//2, 2)
+    window = max(len(signal)//10, 20)
     res = []
 
     lowess_0 = [lowess(
@@ -32,13 +32,13 @@ def signal_to_stats(signal, ax=None):
              np.std(lowess_1[batch][i:i+window])] for batch in range(0, signal.shape[1])])
     res = np.array(res)
 
-    # if ax is not None:
-    #     ax.clear()
-    #     ax.plot(np.array([i for i in range(0, len(signal[:, 0, 1]))], -1), signal[:, 0, 1], c='b')
-    #     ax.plot(np.array([i for i in range(0, len(lowess_1[0]))], -1), lowess_1[0], c='r')
-    #     ax.plot(np.array([i for i in range(0, len(lowess_1[0]))], -1), res[:, 0, 2], c='g')
+    if ax is not None:
+        ax.clear()
+        ax.plot(np.array([i for i in range(len(signal[:, 0, 1]), 0, -1)]), signal[:, 0, 1], c='b')
+        ax.plot(np.array([i for i in range(len(lowess_1[0]), 0, -1)]), lowess_1[0], c='r')
+        ax.plot(np.array([i for i in range(len(res[:, 0, 2]), 0, -1)]), res[:, 0, 2], c='g')
 
-    #     plt.pause(0.001)
+        plt.pause(0.001)
     return res
 
 class Logger:
@@ -104,6 +104,8 @@ class Teacher:
         self.action = None              # For debug purposes
 
     def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, *tags, **parameters):
+        # fig = plt.figure()
+        # ax = plt.gca()
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(*tags, **parameters)
@@ -111,6 +113,7 @@ class Teacher:
         add_noise = True
 
         obs_dim = 2
+        time_offset = history_length//2*stepTime
 
         for i in range(EPISODE_COUNT):
             try:
@@ -118,7 +121,7 @@ class Teacher:
             except AlreadyRunningException as e:
                 pass
 
-            if i>EPISODE_COUNT-5:
+            if i>=EPISODE_COUNT*2/3:
                 add_noise = False
 
             cumulative_reward = 0
@@ -126,7 +129,7 @@ class Teacher:
             sent_mb = 0
 
             obs = self.env.reset()
-            obs = signal_to_stats(np.reshape(obs, (-1, 1, obs_dim)))
+            obs = signal_to_stats(np.reshape(obs, (-1, len(self.env.envs), obs_dim)))
 
             self.last_actions = None
 
@@ -137,11 +140,9 @@ class Teacher:
                     self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                     next_obs, reward, done, info = self.env.step(self.actions)
 
-                    next_obs = signal_to_stats(np.reshape(next_obs, (-1, 1, obs_dim)))
-
+                    next_obs = signal_to_stats(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(np.expand_dims(obs, 0), self.last_actions, reward,
-                                        np.expand_dims(next_obs, 0), done)
+                        agent.step(obs, self.last_actions, reward, next_obs, done)
                     obs = next_obs  
                     cumulative_reward += np.mean(reward)
 
@@ -153,9 +154,9 @@ class Teacher:
 
             agent.reset()
             self.env.close()
-            print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/simTime:.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
+            print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
 
-            logger.log_episode(cumulative_reward, logger.sent_mb/simTime, i)
+            logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), i)
 
         logger.end()
         print("Training finished.")
