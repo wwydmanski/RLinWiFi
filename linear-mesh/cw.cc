@@ -199,7 +199,8 @@ bool MyGetGameOver(void)
 
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
 {
-    Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    if(ns3::Simulator::Now().GetSeconds()+envStepTime<simulationTime)
+        Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
     openGymInterface->NotifyCurrentState();
 }
 

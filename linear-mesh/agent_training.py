@@ -18,7 +18,7 @@ from agents.teacher import Teacher, EnvWrapper
 #%%
 scenario = "convergence"
 
-simTime = 20 # seconds
+simTime = 50 # seconds
 stepTime = 0.01  # seconds
 history_length = 600 
 
@@ -101,8 +101,8 @@ teacher = Teacher(env, 1)
 while True:
     suggestion = optimizer.get_suggestion()
     
-    actor_l = [64, 32, 16]        # [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
-    critic_l = [64, 32, 16]      # [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
+    actor_l = [128, 64, 32]        # [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
+    critic_l = [128, 64, 32]      # [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
     
     lr_actor = suggestion["lr_actor"]
     lr_critic = suggestion["lr_critic"]
@@ -119,7 +119,7 @@ while True:
     agent = Agent(history_length, action_size=1, config=config, actor_layers = actor_l, critic_layers = critic_l)
 
     # Test the model
-    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, "Inp: collisions mb", "Rew: normalized speed", "DDPG", "Convergence", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}", "LSTM",
+    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, "Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
                            f"Station count: {sim_args['nWifi']}",
                           **config.__dict__)
 #     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
