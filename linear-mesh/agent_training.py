@@ -18,9 +18,9 @@ from agents.teacher import Teacher, EnvWrapper
 #%%
 scenario = "convergence"
 
-simTime = 3 # seconds
+simTime = 30 # seconds
 stepTime = 0.01  # seconds
-history_length = 60 
+history_length = 600 
 
 
 EPISODE_COUNT = 15
@@ -119,7 +119,7 @@ while True:
     agent = Agent(history_length, action_size=1, config=config, actor_layers = actor_l, critic_layers = critic_l)
 
     # Test the model
-    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, "Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
+    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, "Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}", 
                            f"Station count: {sim_args['nWifi']}",
                           **config.__dict__)
 #     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")

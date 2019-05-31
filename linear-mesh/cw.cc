@@ -195,14 +195,16 @@ Ptr<OpenGymDataContainer> MyGetObservation()
 
 bool MyGetGameOver(void)
 {
-    bool isGameOver = false;
+    bool isGameOver = (ns3::Simulator::Now().GetSeconds() > simulationTime + end_delay + 1.0);
     return isGameOver;
 }
 
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
 {
-    if(ns3::Simulator::Now().GetSeconds()+envStepTime<simulationTime + end_delay + 1.0)
+    if(ns3::Simulator::Now().GetSeconds()<simulationTime + end_delay + 1.0)
+    {
         Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    }
     openGymInterface->NotifyCurrentState();
 }
 
@@ -381,7 +383,7 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
             Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
 
-    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 + envStepTime));
+    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 ));
 
     NS_LOG_UNCOND("Simulation started");
     Simulator::Run();

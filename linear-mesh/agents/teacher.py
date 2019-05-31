@@ -5,6 +5,7 @@ from comet_ml import Experiment
 from ns3gym import ns3env
 import matplotlib.pyplot as plt
 from statsmodels.nonparametric.smoothers_lowess import lowess
+import time
 
 def signal_to_stats(signal, ax=None):
     window = max(len(signal)//10, 20)
@@ -103,7 +104,7 @@ class Teacher:
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, *tags, **parameters):
+    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, experimental=True, *tags, **parameters):
         # fig = plt.figure()
         # ax = plt.gca()
         steps_per_ep = int(simTime/stepTime)
@@ -133,7 +134,7 @@ class Teacher:
 
             self.last_actions = None
 
-            with tqdm.trange(1, steps_per_ep) as t:
+            with tqdm.trange(steps_per_ep) as t:
                 for step in t:
                     self.debug = obs
 
@@ -152,6 +153,11 @@ class Teacher:
                         logger.log_round(reward, cumulative_reward, info, agent.get_loss(), obs[0][0], i*steps_per_ep+step)
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
 
+                    if(any(done)):
+                        break
+                    if experimental:
+                        self.env = EnvWrapper(self.env.no_threads, self.env.no_threads)
+                    
             agent.reset()
             self.env.close()
             print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
@@ -168,6 +174,7 @@ class AlreadyRunningException(Exception):
 
 class EnvWrapper:
     def __init__(self, no_threads, **params):
+        self.params = params
         self.no_threads = no_threads
         self.ports = [33968+i+np.random.randint(500) for i in range(no_threads)]
         self.commands = self._craft_commands(params)
@@ -229,6 +236,7 @@ class EnvWrapper:
         return (self.no_threads, repr(self.envs[0].action_space))
 
     def close(self):
+        time.sleep(5)
         for env in self.envs:
             env.close()
         # subprocess.Popen(['bash', '-c', "killall linear-mesh"])
