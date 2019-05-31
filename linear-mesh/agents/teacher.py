@@ -12,17 +12,17 @@ def signal_to_stats(signal, ax=None):
     res = []
 
     lowess_0 = [lowess(
-                    signal[:, batch, 0], 
-                    np.array([i for i in range(len(signal[:, batch, 0]))]), 
-                    frac=0.4, 
-                    return_sorted=False) 
+                    signal[:, batch, 0],
+                    np.array([i for i in range(len(signal[:, batch, 0]))]),
+                    frac=0.4,
+                    return_sorted=False)
                 for batch in range(0, signal.shape[1])]
 
     lowess_1 = [lowess(
                     signal[:, batch, 1],
-                    np.array([i for i in range(len(signal[:, batch, 1]))]), 
-                    frac=0.4, 
-                    return_sorted=False) 
+                    np.array([i for i in range(len(signal[:, batch, 1]))]),
+                    frac=0.4,
+                    return_sorted=False)
                 for batch in range(0, signal.shape[1])]
 
     for i in range(0, len(signal), window//2):
@@ -144,7 +144,7 @@ class Teacher:
                     next_obs = signal_to_stats(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
                     if self.last_actions is not None and step>(history_length/obs_dim):
                         agent.step(obs, self.last_actions, reward, next_obs, done)
-                    obs = next_obs  
+                    obs = next_obs
                     cumulative_reward += np.mean(reward)
 
                     self.last_actions = self.actions
@@ -155,11 +155,12 @@ class Teacher:
 
                     if(any(done)):
                         break
-                    if experimental:
-                        self.env = EnvWrapper(self.env.no_threads, self.env.no_threads)
-                    
-            agent.reset()
+
             self.env.close()
+            if experimental:
+                self.env = EnvWrapper(self.env.no_threads, **self.env.params)
+
+            agent.reset()
             print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
 
             logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), i)
@@ -186,7 +187,7 @@ class EnvWrapper:
         for port in self.ports:
             env = ns3env.Ns3Env(port=port, stepTime=params['envStepTime'], startSim=0, simSeed=0, simArgs=params, debug=False)
             self.envs.append(env)
-        
+
         self.SCRIPT_RUNNING = True
 
     def run(self):
@@ -201,7 +202,7 @@ class EnvWrapper:
         command = '../../waf --run "linear-mesh'
         for key, val in params.items():
             command+=f" --{key}={val}"
-        
+
         commands = []
         for p in self.ports:
             commands.append(command+f' --openGymPort={p}"')
@@ -214,7 +215,7 @@ class EnvWrapper:
             obs.append(env.reset())
 
         return obs
-    
+
     def step(self, actions):
         next_obs, reward, done, info = [], [], [], []
 
@@ -240,7 +241,7 @@ class EnvWrapper:
         for env in self.envs:
             env.close()
         # subprocess.Popen(['bash', '-c', "killall linear-mesh"])
-        
+
         self.SCRIPT_RUNNING = False
 
     def __getattr__(self, attr):

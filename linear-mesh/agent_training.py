@@ -20,7 +20,7 @@ scenario = "convergence"
 
 simTime = 30 # seconds
 stepTime = 0.01  # seconds
-history_length = 600 
+history_length = 600
 
 
 EPISODE_COUNT = 15
@@ -34,7 +34,7 @@ sim_args = {
     "scenario": "convergence",
     "nWifi": 15
 }
-print("Steps per episode:", steps_per_ep) 
+print("Steps per episode:", steps_per_ep)
 
 threads_no = 1
 env = EnvWrapper(threads_no, **sim_args)
@@ -100,30 +100,30 @@ teacher = Teacher(env, 1)
 
 while True:
     suggestion = optimizer.get_suggestion()
-    
+
     actor_l = [128, 64, 32]        # [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
     critic_l = [128, 64, 32]      # [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
-    
+
     lr_actor = suggestion["lr_actor"]
     lr_critic = suggestion["lr_critic"]
-    
+
 #     lr_actor = 3e-4
 #     lr_critic = 4e-3
-    
+
     config = Config(buffer_size=1.5e4*threads_no, batch_size=256, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=4)
-    
+
     print("Params:")
     for k, v in suggestion.params.items():
         print(f"{k}: {v}")
-    
+
     agent = Agent(history_length, action_size=1, config=config, actor_layers = actor_l, critic_layers = critic_l)
 
     # Test the model
-    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, "Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}", 
+    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, True, "Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
                            f"Station count: {sim_args['nWifi']}",
                           **config.__dict__)
 #     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
-    
+
     # Report the score back
     suggestion.report_score("last_speed", logger.last_speed)
     del agent

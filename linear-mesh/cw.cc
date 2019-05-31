@@ -383,7 +383,7 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
             Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
 
-    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 ));
+    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 + envStepTime));
 
     NS_LOG_UNCOND("Simulation started");
     Simulator::Run();
