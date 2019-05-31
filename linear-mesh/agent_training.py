@@ -18,9 +18,9 @@ from agents.teacher import Teacher, EnvWrapper
 #%%
 scenario = "convergence"
 
-simTime = 50 # seconds
+simTime = 3 # seconds
 stepTime = 0.01  # seconds
-history_length = 600 
+history_length = 60 
 
 
 EPISODE_COUNT = 15

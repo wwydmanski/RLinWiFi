@@ -33,6 +33,8 @@ void recordHistory();
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
 bool verbose = false;
+int end_delay = 0;
+
 
 uint32_t CW = 0;
 uint32_t history_length = 20;
@@ -199,7 +201,7 @@ bool MyGetGameOver(void)
 
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
 {
-    if(ns3::Simulator::Now().GetSeconds()+envStepTime<simulationTime)
+    if(ns3::Simulator::Now().GetSeconds()+envStepTime<simulationTime + end_delay + 1.0)
         Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
     openGymInterface->NotifyCurrentState();
 }
@@ -379,7 +381,7 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
             Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
 
-    Simulator::Stop(Seconds(simulationTime + end_delay+1.0 + envStepTime));
+    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 + envStepTime));
 
     NS_LOG_UNCOND("Simulation started");
     Simulator::Run();
@@ -487,7 +489,6 @@ int main(int argc, char *argv[])
     ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
     wifiScenario = helper.getScenario(scenario);
 
-    int end_delay = 0;
     if (!dry_run)
     {
         if (non_zero_start)

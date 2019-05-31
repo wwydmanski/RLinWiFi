@@ -133,7 +133,7 @@ class Teacher:
 
             self.last_actions = None
 
-            with tqdm.trange(steps_per_ep) as t:
+            with tqdm.trange(1, steps_per_ep) as t:
                 for step in t:
                     self.debug = obs
 
