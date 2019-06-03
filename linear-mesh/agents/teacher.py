@@ -8,20 +8,20 @@ from statsmodels.nonparametric.smoothers_lowess import lowess
 import time
 
 def signal_to_stats(signal, ax=None):
-    window = max(len(signal)//10, 20)
+    window = max(len(signal)//5, 20)
     res = []
 
     lowess_0 = [lowess(
                     signal[:, batch, 0],
                     np.array([i for i in range(len(signal[:, batch, 0]))]),
-                    frac=0.4,
+                    frac=0.8,
                     return_sorted=False)
                 for batch in range(0, signal.shape[1])]
 
     lowess_1 = [lowess(
                     signal[:, batch, 1],
                     np.array([i for i in range(len(signal[:, batch, 1]))]),
-                    frac=0.4,
+                    frac=0.8,
                     return_sorted=False)
                 for batch in range(0, signal.shape[1])]
 

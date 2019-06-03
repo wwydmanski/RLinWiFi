@@ -162,7 +162,10 @@ float MyGetReward(void)
     if (verbose)
         NS_LOG_UNCOND("MyGetReward: " << last_speed);
 
-    return last_speed;
+    if(last_speed>-0.5 && last_speed<0.5)
+        return last_speed;
+    else
+        return 0;
 }
 
 /*
