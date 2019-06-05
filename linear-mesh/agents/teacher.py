@@ -4,61 +4,30 @@ import subprocess
 from comet_ml import Experiment
 from ns3gym import ns3env
 import matplotlib.pyplot as plt
-from statsmodels.nonparametric.smoothers_lowess import lowess
 import time
 
-def signal_to_stats(signal, ax=None):
-    window = max(len(signal)//5, 20)
-    res = []
 
-    lowess_0 = [lowess(
-                    signal[:, batch, 0],
-                    np.array([i for i in range(len(signal[:, batch, 0]))]),
-                    frac=0.8,
-                    return_sorted=False)
-                for batch in range(0, signal.shape[1])]
-
-    lowess_1 = [lowess(
-                    signal[:, batch, 1],
-                    np.array([i for i in range(len(signal[:, batch, 1]))]),
-                    frac=0.8,
-                    return_sorted=False)
-                for batch in range(0, signal.shape[1])]
-
-    for i in range(0, len(signal), window//2):
-        res.append([
-            [np.mean(lowess_0[batch][i:i+window]),
-             np.std(lowess_0[batch][i:i+window]),
-             np.mean(lowess_1[batch][i:i+window]),
-             np.std(lowess_1[batch][i:i+window])] for batch in range(0, signal.shape[1])])
-    res = np.array(res)
-
-    if ax is not None:
-        ax.clear()
-        ax.plot(np.array([i for i in range(len(signal[:, 0, 1]), 0, -1)]), signal[:, 0, 1], c='b')
-        ax.plot(np.array([i for i in range(len(lowess_1[0]), 0, -1)]), lowess_1[0], c='r')
-        ax.plot(np.array([i for i in range(len(res[:, 0, 2]), 0, -1)]), res[:, 0, 2], c='g')
-
-        plt.pause(0.001)
-    return res
 
 class Logger:
-    def __init__(self, *tags, **parameters):
-        self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
-                        project_name="rl-in-wifi", workspace="wwydmanski")
+    def __init__(self, send_logs, *tags, **parameters):
+        self.send_logs = send_logs
+        if self.send_logs:
+            self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
+                            project_name="rl-in-wifi", workspace="wwydmanski")
         self.sent_mb = 0
 
-        if tags is not None:
-            self.experiment.add_tags(tags)
-        if parameters is not None:
-            self.experiment.log_parameters(parameters)
+        if self.send_logs:
+            if tags is not None:
+                self.experiment.add_tags(tags)
+            if parameters is not None:
+                self.experiment.log_parameters(parameters)
 
     def begin_logging(self, episode_count, steps_per_ep):
-        self.experiment.log_parameter("Episode count", episode_count)
-        self.experiment.log_parameter("Steps per episode", steps_per_ep)
+        if self.send_logs:
+            self.experiment.log_parameter("Episode count", episode_count)
+            self.experiment.log_parameter("Steps per episode", steps_per_ep)
 
     def log_round(self, reward, cumulative_reward, info, loss, observations, step):
-
         try:
             round_mb = np.mean([float(i.split("|")[0]) for i in info])
         except Exception as e:
@@ -68,26 +37,29 @@ class Logger:
         self.sent_mb += round_mb
         CW = np.mean([float(i.split("|")[1]) for i in info])
 
-        self.experiment.log_metric("Round reward", np.mean(reward), step=step)
-        self.experiment.log_metric("Per-ep reward", np.mean(cumulative_reward), step=step)
-        self.experiment.log_metric("Megabytes sent", self.sent_mb, step=step)
-        self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
-        self.experiment.log_metric("Chosen CW", CW, step=step)
+        if self.send_logs:
+            self.experiment.log_metric("Round reward", np.mean(reward), step=step)
+            self.experiment.log_metric("Per-ep reward", np.mean(cumulative_reward), step=step)
+            self.experiment.log_metric("Megabytes sent", self.sent_mb, step=step)
+            self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
+            self.experiment.log_metric("Chosen CW", CW, step=step)
 
-        for i, obs in enumerate(observations):
-            self.experiment.log_metric(f"Observation {i}", obs, step=step)
+            for i, obs in enumerate(observations):
+                self.experiment.log_metric(f"Observation {i}", obs, step=step)
 
-        self.experiment.log_metrics(loss, step=step)
+            self.experiment.log_metrics(loss, step=step)
 
     def log_episode(self, cumulative_reward, speed, step):
-        self.experiment.log_metric("Cumulative reward", cumulative_reward, step=step)
-        self.experiment.log_metric("Speed", speed, step=step)
+        if self.send_logs:
+            self.experiment.log_metric("Cumulative reward", cumulative_reward, step=step)
+            self.experiment.log_metric("Speed", speed, step=step)
 
         self.sent_mb = 0
         self.last_speed = speed
 
     def end(self):
-        self.experiment.end()
+        if self.send_logs:
+            self.experiment.end()
 
 class Teacher:
     """Class that handles training of RL model in ns-3 simulator
@@ -98,18 +70,20 @@ class Teacher:
         num_agents (int): number of agents present at once
     """
 
-    def __init__(self, env, num_agents):
+    def __init__(self, env, num_agents, preprocessor):
+        self.preprocess = preprocessor.preprocess
         self.env = env
         self.num_agents = num_agents
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, experimental=True, tags, parameters):
-        # fig = plt.figure()
-        # ax = plt.gca()
+    def dry_run(self):
+        print(env.action_space)
+
+    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None):
         steps_per_ep = int(simTime/stepTime)
 
-        logger = Logger(*tags, **parameters)
+        logger = Logger(send_logs, *tags, **parameters)
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
         add_noise = True
 
@@ -130,7 +104,7 @@ class Teacher:
             sent_mb = 0
 
             obs = self.env.reset()
-            obs = signal_to_stats(np.reshape(obs, (-1, len(self.env.envs), obs_dim)))
+            obs = self.preprocess(np.reshape(obs, (-1, len(self.env.envs), obs_dim)))
 
             self.last_actions = None
 
@@ -141,9 +115,11 @@ class Teacher:
                     self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                     next_obs, reward, done, info = self.env.step(self.actions)
 
-                    next_obs = signal_to_stats(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
+                    next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
+
                     if self.last_actions is not None and step>(history_length/obs_dim):
                         agent.step(obs, self.last_actions, reward, next_obs, done)
+                        
                     obs = next_obs
                     cumulative_reward += np.mean(reward)
 
@@ -177,7 +153,7 @@ class EnvWrapper:
     def __init__(self, no_threads, **params):
         self.params = params
         self.no_threads = no_threads
-        self.ports = [33968+i+np.random.randint(500) for i in range(no_threads)]
+        self.ports = [33968+i+np.random.randint(10000) for i in range(no_threads)]
         self.commands = self._craft_commands(params)
 
         self.SCRIPT_RUNNING = False

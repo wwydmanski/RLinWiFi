@@ -8,12 +8,7 @@ from collections import deque
 import numpy as np
 
 from agents.ddpg.agent import Agent, Config
-# from agents.dqn.agent import Agent, Config
-# from agents.dqn.model import QNetworkTf
 from agents.teacher import Teacher, EnvWrapper
-
-#%% [markdown]
-# ### Basic constants and setting up environment
 
 #%%
 scenario = "convergence"
@@ -21,7 +16,6 @@ scenario = "convergence"
 simTime = 30 # seconds
 stepTime = 0.05  # seconds
 history_length = 300
-
 
 EPISODE_COUNT = 30
 steps_per_ep = int(simTime/stepTime)
@@ -39,12 +33,6 @@ print("Steps per episode:", steps_per_ep)
 threads_no = 1
 env = EnvWrapper(threads_no, **sim_args)
 
-
-#%%
-# config = Config(buffer_size=2e3, batch_size=64, gamma=0.99, tau=1e-3, lr=5e-4)
-# config = Config(buffer_size=1.5e4*threads_no, batch_size=64, gamma=0.99, tau=1e-3, lr_actor=6e-5, lr_critic=1e-3)
-
-
 #%%
 env.reset()
 ob_space = env.observation_space
@@ -55,60 +43,72 @@ print("Action space shape:", ac_space)
 
 assert ob_space is not None
 
-#%% [markdown]
-# ### Creating and training agent
-
-#%%
-# import tensorflow as tf
-
-# class Network(QNetworkTf):
-#     def _inference(self):
-#         with tf.variable_scope("inference_"+self.name):
-#             layer = tf.layers.dense(self.input, 128, activation=tf.nn.relu)
-# #             layer = tf.layers.dense(layer, 128, activation=tf.nn.relu)
-# #             layer = tf.layers.batch_normalization(layer)
-#             layer = tf.layers.dense(layer, 64, activation=tf.nn.relu)
-#             layer = tf.layers.dense(layer, 32, activation=tf.nn.relu)
-# #             layer = tf.layers.dense(layer, 256, activation=tf.nn.relu)
-# #             layer = tf.layers.dense(layer, 64, activation=tf.nn.relu)
-#             layer = tf.layers.dense(layer, self.action_size)
-#         return layer
-
-
 #%%
 optimizer = Optimizer("OZwyhJHyqzPZgHEpDFL1zxhyI")
-  # Declare your hyper-parameters:
-# actor_fc1 integer [1, 4] [2]
-# actor_fc2 integer [1, 4] [2]
-# actor_fc3 integer [1, 4] [2]
 
-# critic_fc1 integer [1, 4] [2]
-# critic_fc2 integer [1, 4] [2]
-# critic_fc3 integer [1, 4] [2]
-
-# params = """
-# lr_actor real [1e-5, 5e-4] [6e-5] log
-# lr_critic real [5e-4, 1e-3] [8e-4] log
-# """
 params = """
 lr_actor real [1e-6, 5e-3] [3e-5] log
 lr_critic real [1e-5, 5e-2] [4e-5] log
 """
 optimizer.set_params(params)
 
-teacher = Teacher(env, 1)
+#%%
+import matplotlib.pyplot as plt
+from statsmodels.nonparametric.smoothers_lowess import lowess
+
+class Preprocessor:
+    def __init__(self, plot=False):
+        self.plot = plot
+        if plot:
+            self.fig = plt.figure()
+            self.ax = plt.gca()
+
+    def preprocess(self, signal):
+        window = max(len(signal)//5, 20)
+        res = []
+
+        lowess_0 = [lowess(
+                        signal[:, batch, 0],
+                        np.array([i for i in range(len(signal[:, batch, 0]))]),
+                        frac=0.8,
+                        return_sorted=False)
+                    for batch in range(0, signal.shape[1])]
+
+        lowess_1 = [lowess(
+                        signal[:, batch, 1],
+                        np.array([i for i in range(len(signal[:, batch, 1]))]),
+                        frac=0.8,
+                        return_sorted=False)
+                    for batch in range(0, signal.shape[1])]
+
+        for i in range(0, len(signal), window//2):
+            res.append([
+                [np.mean(lowess_0[batch][i:i+window]),
+                np.std(lowess_0[batch][i:i+window]),
+                np.mean(lowess_1[batch][i:i+window]),
+                np.std(lowess_1[batch][i:i+window])] for batch in range(0, signal.shape[1])])
+        res = np.array(res)
+
+        if self.plot:
+            self.ax.clear()
+            self.ax.plot(np.array([i for i in range(len(signal[:, 0, 1]), 0, -1)]), signal[:, 0, 1], c='b')
+            self.ax.plot(np.array([i for i in range(len(lowess_1[0]), 0, -1)]), lowess_1[0], c='r')
+            self.ax.plot(np.array([i for i in range(len(res[:, 0, 2]), 0, -1)]), res[:, 0, 2], c='g')
+
+            plt.pause(0.001)
+        return res
+
+#%%
+teacher = Teacher(env, 1, Preprocessor(True))
 
 while True:
     suggestion = optimizer.get_suggestion()
 
-    actor_l = [64, 32, 16]        # [2**(suggestion["actor_fc1"]+5), 2**(suggestion["actor_fc2"]+4), 2**(suggestion["actor_fc3"]+3)]
-    critic_l = [64, 32, 16]      # [2**(suggestion["critic_fc1"]+5), 2**(suggestion["critic_fc2"]+4), 2**(suggestion["critic_fc3"]+3)]
+    actor_l = [64, 32, 16]
+    critic_l = [64, 32, 16]
 
     lr_actor = suggestion["lr_actor"]
     lr_critic = suggestion["lr_critic"]
-
-#     lr_actor = 3e-4
-#     lr_critic = 4e-3
 
     config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=128, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
 
@@ -120,20 +120,22 @@ while True:
 
     # Test the model
     hyperparams = {**config.__dict__, **sim_args}
-    logger = teacher.train(agent, EPISODE_COUNT, simTime=simTime, stepTime=stepTime, history_length=history_length, experimental=True, tags=["Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
-            f"Station count: {sim_args['nWifi']}", *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]],
-                          params=hyperparams)
-#     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
+    tags = ["Rew: normalized speed", 
+            "DDPG", f"Actor: {actor_l}", 
+            f"Critic: {critic_l}", 
+            f"Instances: {threads_no}",                                 
+            f"Station count: {sim_args['nWifi']}", 
+            *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
+    
+    logger = teacher.train(agent, EPISODE_COUNT, 
+                            simTime=simTime, 
+                            stepTime=stepTime, 
+                            history_length=history_length, 
+                            send_logs=True,
+                            experimental=True, 
+                            tags=tags,
+                            parameters=hyperparams)
 
     # Report the score back
     suggestion.report_score("last_speed", logger.last_speed)
     del agent
-
-
-SCRIPT_RUNNING = False
-
-
-#%%
-teacher.next_obs[:, 0, 2]
-
-
