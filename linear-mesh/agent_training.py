@@ -18,12 +18,12 @@ from agents.teacher import Teacher, EnvWrapper
 #%%
 scenario = "convergence"
 
-simTime = 60 # seconds
-stepTime = 0.01  # seconds
-history_length = 600
+simTime = 30 # seconds
+stepTime = 0.05  # seconds
+history_length = 300
 
 
-EPISODE_COUNT = 15
+EPISODE_COUNT = 30
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
@@ -91,7 +91,7 @@ optimizer = Optimizer("OZwyhJHyqzPZgHEpDFL1zxhyI")
 # lr_critic real [5e-4, 1e-3] [8e-4] log
 # """
 params = """
-lr_actor real [1e-6, 5e-3] [1e-5] log
+lr_actor real [1e-6, 5e-3] [3e-5] log
 lr_critic real [1e-5, 5e-2] [4e-5] log
 """
 optimizer.set_params(params)
@@ -110,7 +110,7 @@ while True:
 #     lr_actor = 3e-4
 #     lr_critic = 4e-3
 
-    config = Config(buffer_size=2*steps_per_ep*threads_no, batch_size=256, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=4)
+    config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=128, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
 
     print("Params:")
     for k, v in suggestion.params.items():
@@ -119,9 +119,10 @@ while True:
     agent = Agent(history_length, action_size=1, config=config, actor_layers = actor_l, critic_layers = critic_l)
 
     # Test the model
-    logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, history_length, True, "Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
-            f"Station count: {sim_args['nWifi']}", *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]],
-                          **config.__dict__)
+    hyperparams = {**config.__dict__, **sim_args}
+    logger = teacher.train(agent, EPISODE_COUNT, simTime=simTime, stepTime=stepTime, history_length=history_length, experimental=True, tags=["Rew: normalized speed", "DDPG", f"Actor: {actor_l}", f"Critic: {critic_l}", f"Instances: {threads_no}",
+            f"Station count: {sim_args['nWifi']}", *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]],
+                          params=hyperparams)
 #     logger = teacher.train(agent, EPISODE_COUNT, simTime, stepTime, "BEB", f"Station count: {sim_args['nWifi']}")
 
     # Report the score back

@@ -104,7 +104,7 @@ class Teacher:
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, experimental=True, *tags, **parameters):
+    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, experimental=True, tags, parameters):
         # fig = plt.figure()
         # ax = plt.gca()
         steps_per_ep = int(simTime/stepTime)
