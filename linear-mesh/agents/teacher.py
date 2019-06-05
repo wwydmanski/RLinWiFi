@@ -9,7 +9,7 @@ import time
 
 
 class Logger:
-    def __init__(self, send_logs, *tags, **parameters):
+    def __init__(self, send_logs, tags, parameters):
         self.send_logs = send_logs
         if self.send_logs:
             self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
@@ -77,13 +77,25 @@ class Teacher:
         self.CW = 16
         self.action = None              # For debug purposes
 
-    def dry_run(self):
-        print(env.action_space)
+    def dry_run(self, agent, steps_per_ep):
+        obs = self.env.reset()
+        obs = self.preprocess(np.reshape(obs, (-1, len(self.env.envs), 2)))
+
+        with tqdm.trange(steps_per_ep) as t:
+            for step in t:
+                self.actions = agent.act()
+                next_obs, reward, done, info = self.env.step(self.actions)
+
+                obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), 2)))
+
+                if(any(done)):
+                    break
+
 
     def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None):
         steps_per_ep = int(simTime/stepTime)
 
-        logger = Logger(send_logs, *tags, **parameters)
+        logger = Logger(send_logs, tags, parameters)
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
         add_noise = True
 
@@ -126,7 +138,7 @@ class Teacher:
                     self.last_actions = self.actions
 
                     if step>(history_length/obs_dim):
-                        logger.log_round(reward, cumulative_reward, info, agent.get_loss(), obs[0][0], i*steps_per_ep+step)
+                        logger.log_round(reward, cumulative_reward, info, agent.get_loss(), np.mean(obs, axis=0)[0], i*steps_per_ep+step)
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
 
                     if(any(done)):
@@ -206,11 +218,13 @@ class EnvWrapper:
 
     @property
     def observation_space(self):
-        return (self.no_threads, repr(self.envs[0].observation_space))
+        dim = repr(self.envs[0].observation_space).replace('Box(', '').replace(',)', '')
+        return (self.no_threads, int(dim))
 
     @property
     def action_space(self):
-        return (self.no_threads, repr(self.envs[0].action_space))
+        dim = repr(self.envs[0].action_space).replace('Box(', '').replace(',)', '')
+        return (self.no_threads, int(dim))
 
     def close(self):
         time.sleep(5)

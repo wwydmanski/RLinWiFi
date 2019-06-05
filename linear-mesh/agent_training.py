@@ -9,6 +9,7 @@ import numpy as np
 
 from agents.ddpg.agent import Agent, Config
 from agents.teacher import Teacher, EnvWrapper
+from preprocessor import Preprocessor
 
 #%%
 scenario = "convergence"
@@ -51,52 +52,6 @@ lr_actor real [1e-6, 5e-3] [3e-5] log
 lr_critic real [1e-5, 5e-2] [4e-5] log
 """
 optimizer.set_params(params)
-
-#%%
-import matplotlib.pyplot as plt
-from statsmodels.nonparametric.smoothers_lowess import lowess
-
-class Preprocessor:
-    def __init__(self, plot=False):
-        self.plot = plot
-        if plot:
-            self.fig = plt.figure()
-            self.ax = plt.gca()
-
-    def preprocess(self, signal):
-        window = max(len(signal)//5, 20)
-        res = []
-
-        lowess_0 = [lowess(
-                        signal[:, batch, 0],
-                        np.array([i for i in range(len(signal[:, batch, 0]))]),
-                        frac=0.8,
-                        return_sorted=False)
-                    for batch in range(0, signal.shape[1])]
-
-        lowess_1 = [lowess(
-                        signal[:, batch, 1],
-                        np.array([i for i in range(len(signal[:, batch, 1]))]),
-                        frac=0.8,
-                        return_sorted=False)
-                    for batch in range(0, signal.shape[1])]
-
-        for i in range(0, len(signal), window//2):
-            res.append([
-                [np.mean(lowess_0[batch][i:i+window]),
-                np.std(lowess_0[batch][i:i+window]),
-                np.mean(lowess_1[batch][i:i+window]),
-                np.std(lowess_1[batch][i:i+window])] for batch in range(0, signal.shape[1])])
-        res = np.array(res)
-
-        if self.plot:
-            self.ax.clear()
-            self.ax.plot(np.array([i for i in range(len(signal[:, 0, 1]), 0, -1)]), signal[:, 0, 1], c='b')
-            self.ax.plot(np.array([i for i in range(len(lowess_1[0]), 0, -1)]), lowess_1[0], c='r')
-            self.ax.plot(np.array([i for i in range(len(res[:, 0, 2]), 0, -1)]), res[:, 0, 2], c='g')
-
-            plt.pause(0.001)
-        return res
 
 #%%
 teacher = Teacher(env, 1, Preprocessor(True))
