@@ -14,11 +14,11 @@ from preprocessor import Preprocessor
 #%%
 scenario = "convergence"
 
-simTime = 30 # seconds
-stepTime = 0.05  # seconds
+simTime = 60 # seconds
+stepTime = 0.02  # seconds
 history_length = 300
 
-EPISODE_COUNT = 30
+EPISODE_COUNT = 15
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
@@ -31,7 +31,7 @@ sim_args = {
 }
 print("Steps per episode:", steps_per_ep)
 
-threads_no = 1
+threads_no = 2
 env = EnvWrapper(threads_no, **sim_args)
 
 #%%
@@ -48,13 +48,13 @@ assert ob_space is not None
 optimizer = Optimizer("OZwyhJHyqzPZgHEpDFL1zxhyI")
 
 params = """
-lr_actor real [1e-6, 5e-3] [3e-5] log
+lr_actor real [1e-6, 5e-3] [1e-5] log
 lr_critic real [1e-5, 5e-2] [4e-5] log
 """
 optimizer.set_params(params)
 
 #%%
-teacher = Teacher(env, 1, Preprocessor(True))
+teacher = Teacher(env, 1, Preprocessor(False))
 
 while True:
     suggestion = optimizer.get_suggestion()
@@ -65,7 +65,7 @@ while True:
     lr_actor = suggestion["lr_actor"]
     lr_critic = suggestion["lr_critic"]
 
-    config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=128, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
+    config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
 
     print("Params:")
     for k, v in suggestion.params.items():
@@ -75,19 +75,20 @@ while True:
 
     # Test the model
     hyperparams = {**config.__dict__, **sim_args}
-    tags = ["Rew: normalized speed", 
-            "DDPG", f"Actor: {actor_l}", 
-            f"Critic: {critic_l}", 
-            f"Instances: {threads_no}",                                 
-            f"Station count: {sim_args['nWifi']}", 
+    tags = ["Rew: normalized speed",
+            "DDPG",
+            f"Actor: {actor_l}",
+            f"Critic: {critic_l}",
+            f"Instances: {threads_no}",
+            f"Station count: {sim_args['nWifi']}",
             *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
-    
-    logger = teacher.train(agent, EPISODE_COUNT, 
-                            simTime=simTime, 
-                            stepTime=stepTime, 
-                            history_length=history_length, 
+
+    logger = teacher.train(agent, EPISODE_COUNT,
+                            simTime=simTime,
+                            stepTime=stepTime,
+                            history_length=history_length,
                             send_logs=True,
-                            experimental=True, 
+                            experimental=True,
                             tags=tags,
                             parameters=hyperparams)
 

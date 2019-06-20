@@ -108,7 +108,7 @@ class Teacher:
             except AlreadyRunningException as e:
                 pass
 
-            if i>=EPISODE_COUNT*2/3:
+            if i>=EPISODE_COUNT*4/5:
                 add_noise = False
 
             cumulative_reward = 0
@@ -131,7 +131,7 @@ class Teacher:
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
                         agent.step(obs, self.last_actions, reward, next_obs, done)
-                        
+
                     obs = next_obs
                     cumulative_reward += np.mean(reward)
 

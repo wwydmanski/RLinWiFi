@@ -51,8 +51,8 @@ class Actor(nn.Module):
         self.norm2 = torch.nn.BatchNorm1d(fc2_units)
         # self.fc3 = nn.Linear(fc2_units, action_size)
         self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.dropout = torch.nn.Dropout(0.5)
         self.fc4 = nn.Linear(fc3_units, action_size)
-
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -79,6 +79,7 @@ class Actor(nn.Module):
         # x = self.norm2(x)
         # return torch.tanh(self.fc3(x))
         x = F.relu(self.fc3(x))
+        x = self.dropout(x)
         return torch.tanh(self.fc4(x))
 
 

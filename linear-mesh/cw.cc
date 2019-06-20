@@ -241,7 +241,7 @@ void recordHistory()
 
     // history.push_front(g_txPktNum - last_tx);
     history.push_front(ratio);
-    history.push_front(received);
+    history.push_front(ratio);
     // history.push_front(stations_online);
     // history.push_front(stations_online);
 
