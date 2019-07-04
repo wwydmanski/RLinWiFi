@@ -130,7 +130,7 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.last_actions, reward, next_obs, done)
+                        agent.step(obs, self.last_actions, reward, next_obs, done, 1)
 
                     obs = next_obs
                     cumulative_reward += np.mean(reward)
@@ -165,7 +165,7 @@ class EnvWrapper:
     def __init__(self, no_threads, **params):
         self.params = params
         self.no_threads = no_threads
-        self.ports = [33968+i+np.random.randint(10000) for i in range(no_threads)]
+        self.ports = [13968+i+np.random.randint(40000) for i in range(no_threads)]
         self.commands = self._craft_commands(params)
 
         self.SCRIPT_RUNNING = False

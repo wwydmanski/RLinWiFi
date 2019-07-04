@@ -15,8 +15,8 @@ from preprocessor import Preprocessor
 scenario = "convergence"
 
 simTime = 60 # seconds
-stepTime = 0.02  # seconds
-history_length = 300
+stepTime = 0.01  # seconds
+history_length = 600
 
 EPISODE_COUNT = 15
 steps_per_ep = int(simTime/stepTime)
@@ -31,7 +31,7 @@ sim_args = {
 }
 print("Steps per episode:", steps_per_ep)
 
-threads_no = 2
+threads_no = 1
 env = EnvWrapper(threads_no, **sim_args)
 
 #%%

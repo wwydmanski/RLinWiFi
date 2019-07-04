@@ -73,6 +73,9 @@ class Agent:
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10, gamma=0.1)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10, gamma=0.1)
+
         self.episodes_passed = 1
 
         self.notifications = 0
@@ -118,7 +121,7 @@ class Agent:
 
         return np.clip(action_values, -1, 1)
 
-    def step(self, states, actions, rewards, next_states, dones):
+    def step(self, states, actions, rewards, next_states, dones, training_steps=1):
         for action, reward, done, i in zip(actions, rewards, dones, range(len(rewards))):
             assert states[:, i].ndim==2
             assert next_states[:, i].ndim==2
