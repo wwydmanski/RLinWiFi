@@ -82,6 +82,7 @@ for experiment in optimizer.get_experiments():
     config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=32, gamma=0.98, tau=1e-3, lr=lr, update_every=1)
     agent = Agent(QNetworkTf, history_length, action_size=3, config=config)
     agent.set_epsilon(0.9, 0.01, 3)
+    experiment.log_metric("learning_rate", lr, step=int(simTime/stepTime)*5)
     # agent = Agent(history_length, action_size=3, config=config)
 
     # Test the model
