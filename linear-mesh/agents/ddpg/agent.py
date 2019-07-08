@@ -73,8 +73,8 @@ class Agent:
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
-        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10, gamma=0.1)
-        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10, gamma=0.1)
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=5, gamma=0.5)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=5, gamma=0.5)
 
         self.episodes_passed = 1
 
@@ -91,8 +91,8 @@ class Agent:
         self.critic_optimizer = torch.optim.Adam(
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
 
-        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=5, gamma=0.1)
-        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=5, gamma=0.1)
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=5, gamma=0.5)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=5, gamma=0.5)
 
         self.t_step = 0
 
@@ -194,8 +194,8 @@ class Agent:
     def reset(self):
         self.noise.reset()
         self.episodes_passed += 1
-        self.actor_scheduler.step()
-        self.critic_scheduler.step()
+        # self.actor_scheduler.step()
+        # self.critic_scheduler.step()
 
     def get_loss(self):
         return {"actor_loss": self.actor_loss, "critic_loss": self.critic_loss}

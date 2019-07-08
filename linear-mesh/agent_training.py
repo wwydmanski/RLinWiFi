@@ -26,8 +26,8 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "convergence",
-    "nWifi": 15
+    "scenario": "basic",
+    "nWifi": 50
 }
 print("Steps per episode:", steps_per_ep)
 
@@ -76,6 +76,7 @@ while True:
     # Test the model
     hyperparams = {**config.__dict__, **sim_args}
     tags = ["Rew: normalized speed",
+            f"{sim_args['scenario']}",
             "DDPG",
             f"Actor: {actor_l}",
             f"Critic: {critic_l}",
