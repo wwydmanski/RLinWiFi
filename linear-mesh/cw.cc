@@ -241,13 +241,13 @@ void recordHistory()
 
     // history.push_front(g_txPktNum - last_tx);
     history.push_front(ratio);
-    history.push_front(ratio);
+    // history.push_front(ratio);
     // history.push_front(stations_online);
     // history.push_front(stations_online);
 
     if (history.size() > history_length)
     {
-        history.pop_back();
+        // history.pop_back();
         history.pop_back();
     }
     last_rx = g_rxPktNum;
@@ -515,7 +515,8 @@ int main(int argc, char *argv[])
     set_sim(tracing, dry_run, warmup, openGymPort, phy, apDevice, end_delay, monitor, flowmon);
 
     double flowThr;
-
+    float res =  g_rxPktNum * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
+    printf("Sent mbytes: %.2f\tThroughput: %.3f", res, res/simulationTime);
     ofstream myfile;
     myfile.open(outputCsv, ios::app);
 

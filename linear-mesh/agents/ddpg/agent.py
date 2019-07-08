@@ -28,7 +28,8 @@ class Config:
 
 class Agent:
     TYPE = "continuous"
-
+    NAME = "DDPG"
+    
     def __init__(self, state_size, action_size, config=Config(), random_seed=42, actor_layers=None, critic_layers=None):
         self.config = config
 

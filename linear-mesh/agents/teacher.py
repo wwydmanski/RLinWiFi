@@ -9,11 +9,14 @@ import time
 
 
 class Logger:
-    def __init__(self, send_logs, tags, parameters):
+    def __init__(self, send_logs, tags, parameters, experiment=None):
         self.send_logs = send_logs
-        if self.send_logs:
-            self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
-                            project_name="rl-in-wifi", workspace="wwydmanski")
+        if self.send_logs: 
+            if experiment is None:
+                self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
+                                project_name="rl-in-wifi", workspace="wwydmanski")
+            else:
+                self.experiment = experiment
         self.sent_mb = 0
 
         if self.send_logs:
@@ -92,10 +95,10 @@ class Teacher:
                     break
 
 
-    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None):
+    def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None, experiment=None):
         steps_per_ep = int(simTime/stepTime)
 
-        logger = Logger(send_logs, tags, parameters)
+        logger = Logger(send_logs, tags, parameters, experiment=experiment)
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
         add_noise = True
 
@@ -130,7 +133,7 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.last_actions, reward, next_obs, done, 1)
+                        agent.step(obs, self.last_actions, reward, next_obs, done, 10)
 
                     obs = next_obs
                     cumulative_reward += np.mean(reward)
@@ -214,7 +217,7 @@ class EnvWrapper:
             done.append(dn)
             info.append(inf)
 
-        return next_obs, reward, done, info
+        return np.array(next_obs), np.array(reward), np.array(done), np.array(info)
 
     @property
     def observation_space(self):
