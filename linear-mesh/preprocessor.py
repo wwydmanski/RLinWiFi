@@ -26,19 +26,17 @@ class Preprocessor:
                         return_sorted=False)
                     for batch in range(0, signal.shape[1])]
 
-        lowess_1 = [lowess(
-                        signal[:, batch, 1],
-                        np.array([i for i in range(len(signal[:, batch, 1]))]),
-                        frac=0.2,
-                        return_sorted=False)
-                    for batch in range(0, signal.shape[1])]
+        # lowess_1 = [lowess(
+        #                 signal[:, batch, 1],
+        #                 np.array([i for i in range(len(signal[:, batch, 1]))]),
+        #                 frac=0.2,
+        #                 return_sorted=False)
+        #             for batch in range(0, signal.shape[1])]
 
         for i in range(0, len(signal), window//2):
             res.append([
                 [np.mean(lowess_0[batch][i:i+window]),
-                np.std(lowess_0[batch][i:i+window]),
-                np.mean(lowess_1[batch][i:i+window]),
-                np.std(lowess_1[batch][i:i+window])] for batch in range(0, signal.shape[1])])
+                np.std(lowess_0[batch][i:i+window])] for batch in range(0, signal.shape[1])])
         res = np.array(res)
 
         if self.plot:

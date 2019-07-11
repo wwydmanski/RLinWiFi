@@ -116,10 +116,11 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
     if (type == "discrete")
     {
-        if (actionVector.at(0) == 0)
-            CW /= 2;
-        else if (actionVector.at(0) == 2)
-            CW *= 2;
+        // if (actionVector.at(0) == 0)
+        //     CW /= 2;
+        // else if (actionVector.at(0) == 2)
+        //     CW *= 2;
+        CW = pow(2, 4+actionVector.at(0));
     }
     else if (type == "continuous")
     {

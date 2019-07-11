@@ -102,7 +102,7 @@ class Teacher:
         logger.begin_logging(EPISODE_COUNT, steps_per_ep)
         add_noise = True
 
-        obs_dim = 2
+        obs_dim = 1
         time_offset = history_length//2*stepTime
 
         for i in range(EPISODE_COUNT):
@@ -133,7 +133,7 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.last_actions, reward, next_obs, done, 10)
+                        agent.step(obs, self.actions, reward, next_obs, done, 10)
 
                     obs = next_obs
                     cumulative_reward += np.mean(reward)

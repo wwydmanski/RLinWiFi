@@ -23,7 +23,7 @@ class QNetworkTf():
 
         if checkpoint_file is None:
             with tf.variable_scope("placeholders_"+self.name):
-                self.input = tf.placeholder(tf.float32, shape=(11, None, 4), name='input')
+                self.input = tf.placeholder(tf.float32, shape=(11, None, 2), name='input')
                 self.y_input = tf.placeholder(tf.float32, shape=(None, 1), name='y_input')
                 self.gather_index = tf.placeholder(tf.int32, shape=(None), name='gather_index')
 
@@ -53,6 +53,7 @@ class QNetworkTf():
             layer = tf.layers.dense(layer[-1], 32, activation=tf.nn.relu)
             layer = tf.layers.dense(layer, 16, activation=tf.nn.relu)
             output = tf.layers.dense(layer, self.action_size)
+            # output = output/2
         return output
 
     def _training_graph(self):

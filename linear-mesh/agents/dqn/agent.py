@@ -34,6 +34,9 @@ class Agent:
     TYPE = "discrete"
     NAME = "DQN"
 
+    def __del__(self):
+        tf.reset_default_graph()
+
     def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
         """Initialize an Agent object.
 
@@ -145,18 +148,23 @@ class Agent:
                     experiences = self.memory.sample()
                     self.learn(experiences, self.config.GAMMA)
 
-    def act(self, state, mode="train"):
+    def act(self, state, add_noise=True):
         """Returns actions for given state as per current policy.
 
         Params
         ======
             state (array_like): current state
-            mode (str): "train" or "test", for strategy choosing
+            add_noise (bool): false for greedy strategy
         """
         res = []
         for sim_id in range(state.shape[1]):
             sim = np.expand_dims(state[:, sim_id], 1)
-            res.append(self.sess.run(self.act_op, feed_dict={self.qnetwork_local.input: sim}))
+            if add_noise:
+                res.append(self.sess.run(self.act_op, feed_dict={self.qnetwork_local.input: sim}))
+            else:
+                res.append(self.sess.run(tf.argmax(
+                                  self.qnetwork_local.output, output_type=tf.int32, axis=1), 
+                                  feed_dict={self.qnetwork_local.input: sim}))
 
         return res
 
