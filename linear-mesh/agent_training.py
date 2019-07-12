@@ -19,7 +19,7 @@ simTime = 60 # seconds
 stepTime = 0.03  # seconds
 history_length = 110
 
-EPISODE_COUNT = 15
+EPISODE_COUNT = 5
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
@@ -46,20 +46,6 @@ print("Action space shape:", ac_space)
 assert ob_space is not None
 
 #%%
-# config = {
-#   "algorithm": "bayes",
-#   "parameters": {
-#       "lr": {"type": "float", "min": np.log(1e-8), "max": np.log(1e-6), "scalingType": "loguniform" },
-#   },
-#   "spec": {
-#       "metric": "Speed",
-#       "objective": "maximize",
-#   },
-# }
-# optimizer = Optimizer(config, api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
-#                     project_name="rl-in-wifi")
-
-#%%
 teacher = Teacher(env, 1, Preprocessor(False))
 
 # actor_l = [64, 32, 16]
@@ -68,15 +54,11 @@ teacher = Teacher(env, 1, Preprocessor(False))
 # lr_actor = 1e-5
 # lr_critic = 4e-5
 
-# for experiment in optimizer.get_experiments():
-    # lr = experiment.get_parameter("lr")
-    # config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
-lr = 1e-7
+# config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
+lr = 8e-2
 config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
 agent = Agent(QNetworkTf, history_length, action_size=7, config=config)
-agent.set_epsilon(0.9, 0.001, 14)
-# experiment.log_metric("learning_rate", lr, step=0)
-# experiment.log_metric("learning_rate", lr, step=4)
+agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-1)
 # agent = Agent(history_length, action_size=3, config=config)
 
 # Test the model
@@ -84,8 +66,7 @@ hyperparams = {**config.__dict__, **sim_args}
 tags = ["Rew: normalized speed",
         f"{Agent.NAME}",
         "basic",
-        # f"LR: {lr}",
-        # "LR tests",
+        f"LR: {lr}",
         # f"Actor: {actor_l}",
         # f"Critic: {critic_l}",
         f"Instances: {threads_no}",
@@ -100,7 +81,3 @@ logger = teacher.train(agent, EPISODE_COUNT,
                         experimental=True,
                         tags=tags,
                         parameters=hyperparams)
-                        # experiment=experiment)
-# experiment.log_metric("Speed", logger.last_speed, step=int(simTime/stepTime)*5)
-# experiment.end()
-del agent

@@ -52,8 +52,8 @@ class QNetworkTf():
             layer, _ = tf.contrib.rnn.static_rnn(tf.contrib.rnn.LSTMCell(64, activation=tf.nn.relu), inp, dtype=tf.float32)
             layer = tf.layers.dense(layer[-1], 32, activation=tf.nn.relu)
             layer = tf.layers.dense(layer, 16, activation=tf.nn.relu)
-            output = tf.layers.dense(layer, self.action_size)
-            # output = output/2
+            output = tf.layers.dense(layer, self.action_size, activation=tf.nn.tanh)
+            output = output/2
         return output
 
     def _training_graph(self):

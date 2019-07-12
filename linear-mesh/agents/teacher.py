@@ -133,7 +133,7 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.actions, reward, next_obs, done, 10)
+                        agent.step(obs, self.last_actions, reward, next_obs, done, 1)
 
                     obs = next_obs
                     cumulative_reward += np.mean(reward)
