@@ -30,7 +30,8 @@ class Logger:
             self.experiment.log_parameter("Episode count", episode_count)
             self.experiment.log_parameter("Steps per episode", steps_per_ep)
 
-    def log_round(self, reward, cumulative_reward, info, loss, observations, step):
+    def log_round(self, states, reward, cumulative_reward, info, loss, observations, step):
+        self.experiment.log_histogram_3d(states, name="Observations", step=step)
         try:
             round_mb = np.mean([float(i.split("|")[0]) for i in info])
         except Exception as e:
@@ -82,14 +83,14 @@ class Teacher:
 
     def dry_run(self, agent, steps_per_ep):
         obs = self.env.reset()
-        obs = self.preprocess(np.reshape(obs, (-1, len(self.env.envs), 2)))
+        obs = self.preprocess(np.reshape(obs, (-1, len(self.env.envs), 1)))
 
         with tqdm.trange(steps_per_ep) as t:
             for step in t:
                 self.actions = agent.act()
                 next_obs, reward, done, info = self.env.step(self.actions)
 
-                obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), 2)))
+                obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), 1)))
 
                 if(any(done)):
                     break
@@ -103,7 +104,7 @@ class Teacher:
         add_noise = True
 
         obs_dim = 1
-        time_offset = history_length//2*stepTime
+        time_offset = history_length//obs_dim*stepTime
 
         for i in range(EPISODE_COUNT):
             try:
@@ -111,8 +112,9 @@ class Teacher:
             except AlreadyRunningException as e:
                 pass
 
-            if i>=EPISODE_COUNT*4/5:
+            if i>=EPISODE_COUNT*4/5-1:
                 add_noise = False
+                print("Turning off noise")
 
             cumulative_reward = 0
             reward = 0
@@ -133,16 +135,17 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.last_actions, reward, next_obs, done, 1)
+                        agent.step(obs, self.actions, reward, next_obs, done, 1)
 
-                    obs = next_obs
                     cumulative_reward += np.mean(reward)
 
                     self.last_actions = self.actions
 
                     if step>(history_length/obs_dim):
-                        logger.log_round(reward, cumulative_reward, info, agent.get_loss(), np.mean(obs, axis=0)[0], i*steps_per_ep+step)
+                        logger.log_round(obs, reward, cumulative_reward, info, agent.get_loss(), np.mean(obs, axis=0)[0], i*steps_per_ep+step)
                     t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
+
+                    obs = next_obs
 
                     if(any(done)):
                         break

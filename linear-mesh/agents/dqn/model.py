@@ -23,7 +23,7 @@ class QNetworkTf():
 
         if checkpoint_file is None:
             with tf.variable_scope("placeholders_"+self.name):
-                self.input = tf.placeholder(tf.float32, shape=(11, None, 2), name='input')
+                self.input = tf.placeholder(tf.float32, shape=(4, None, 2), name='input')
                 self.y_input = tf.placeholder(tf.float32, shape=(None, 1), name='y_input')
                 self.gather_index = tf.placeholder(tf.int32, shape=(None), name='gather_index')
 
@@ -49,11 +49,13 @@ class QNetworkTf():
     def _inference(self):
         with tf.variable_scope("inference_"+self.name):
             inp = tf.unstack(self.input, axis=0)
-            layer, _ = tf.contrib.rnn.static_rnn(tf.contrib.rnn.LSTMCell(64, activation=tf.nn.relu), inp, dtype=tf.float32)
-            layer = tf.layers.dense(layer[-1], 32, activation=tf.nn.relu)
-            layer = tf.layers.dense(layer, 16, activation=tf.nn.relu)
-            output = tf.layers.dense(layer, self.action_size, activation=tf.nn.tanh)
-            output = output/2
+            layer, _ = tf.contrib.rnn.static_rnn(tf.contrib.rnn.LSTMCell(8,activation=tf.nn.relu), inp, dtype=tf.float32)
+            layer = tf.layers.dense(layer[-1], 128, activation=tf.nn.relu)
+            #layer = tf.layers.dense(layer, 256, activation=tf.nn.relu)
+            #layer = tf.layers.dropout(layer, 0.5)
+            layer = tf.layers.dense(layer, 64, activation=tf.nn.relu)
+            # layer = tf.layers.dense(layer, 16, activation=tf.nn.relu)
+            output = tf.layers.dense(layer, self.action_size)
         return output
 
     def _training_graph(self):

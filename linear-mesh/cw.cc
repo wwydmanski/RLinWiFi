@@ -146,14 +146,14 @@ float MyGetReward(void)
 {
     static float ticks = 0.0;
     static uint32_t last_packets = 0;
-    static float last_speed = 0.0;
+    static float last_reward = 0.0;
     ticks += envStepTime;
 
     float res = g_rxPktNum - last_packets;
     // float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
 
     // last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - 0.5;
-    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime) * 10 - 0.5;
+    float reward = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime) * 10;
 
     last_packets = g_rxPktNum;
 
@@ -161,12 +161,16 @@ float MyGetReward(void)
         return 0.0;
 
     if (verbose)
-        NS_LOG_UNCOND("MyGetReward: " << last_speed);
+        NS_LOG_UNCOND("MyGetReward: " << reward);
 
-    if(last_speed>-0.5 && last_speed<0.5)
-        return last_speed;
-    else
-        return 0;
+    // if(last_speed>0 && last_speed<1)
+    //     return last_speed;
+    // else
+    //     return 0;
+    if(reward>1.0f || reward<0.0f)
+        reward = last_reward;
+    last_reward = reward;
+    return last_reward;
 }
 
 /*

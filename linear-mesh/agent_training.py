@@ -16,10 +16,10 @@ from preprocessor import Preprocessor
 scenario = "convergence"
 
 simTime = 60 # seconds
-stepTime = 0.03  # seconds
-history_length = 110
+stepTime = 0.01  # seconds
+history_length = 300
 
-EPISODE_COUNT = 5
+EPISODE_COUNT = 15
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
@@ -27,8 +27,8 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "basic",
-    "nWifi": 30
+    "scenario": "convergence",
+    "nWifi": 15
 }
 print("Steps per episode:", steps_per_ep)
 
@@ -55,17 +55,17 @@ teacher = Teacher(env, 1, Preprocessor(False))
 # lr_critic = 4e-5
 
 # config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.98, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
-lr = 8e-2
-config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
+lr = 4e-4
+config = Config(buffer_size=3*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
 agent = Agent(QNetworkTf, history_length, action_size=7, config=config)
-agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-1)
+agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-2)
 # agent = Agent(history_length, action_size=3, config=config)
 
 # Test the model
 hyperparams = {**config.__dict__, **sim_args}
 tags = ["Rew: normalized speed",
         f"{Agent.NAME}",
-        "basic",
+        "convergence",
         f"LR: {lr}",
         # f"Actor: {actor_l}",
         # f"Critic: {critic_l}",

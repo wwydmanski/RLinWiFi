@@ -16,28 +16,28 @@ class Preprocessor:
         return np.clip((sig-np.min(sig))/(np.max(sig)-np.min(sig)+1e-6), 0, 1)
 
     def preprocess(self, signal):
-        window = max(len(signal)//10, 20)
+        # window = max(len(signal)//4, 10)
+        window = 150
         res = []
 
-        lowess_0 = [lowess(
+        """ lowess_0 = [lowess(
                         signal[:, batch, 0],
                         np.array([i for i in range(len(signal[:, batch, 0]))]),
                         frac=0.2,
                         return_sorted=False)
-                    for batch in range(0, signal.shape[1])]
-
+                    for batch in range(0, signal.shape[1])]"""
         # lowess_1 = [lowess(
         #                 signal[:, batch, 1],
         #                 np.array([i for i in range(len(signal[:, batch, 1]))]),
         #                 frac=0.2,
         #                 return_sorted=False)
         #             for batch in range(0, signal.shape[1])]
-
         for i in range(0, len(signal), window//2):
             res.append([
-                [np.mean(lowess_0[batch][i:i+window]),
-                np.std(lowess_0[batch][i:i+window])] for batch in range(0, signal.shape[1])])
+                [np.mean(signal[i:i+window, batch]),
+                np.std(signal[i:i+window, batch])] for batch in range(0, signal.shape[1])])
         res = np.array(res)
+        res = np.clip(res, 0, 1)
 
         if self.plot:
             plot_len = len(signal[:, 0, 0])
