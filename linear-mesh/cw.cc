@@ -124,7 +124,8 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     }
     else if (type == "continuous")
     {
-        CW = pow(2, actionVector.at(0) * 3 + 7);
+        //CW = pow(2, actionVector.at(0) + 4);
+        CW = actionVector.at(0);
     }
     else
     {
@@ -357,6 +358,12 @@ void set_nodes(int channelWidth, int rng, uint32_t simSeed, NodeContainer wifiSt
     {
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
+    }
+    else
+    {
+        NS_LOG_UNCOND("Default CW");
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(16));
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(1024));
     }
 }
 

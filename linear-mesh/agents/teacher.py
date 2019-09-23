@@ -95,6 +95,59 @@ class Teacher:
                 if(any(done)):
                     break
 
+    def eval(self, agent, simTime, stepTime, history_length, tags=None, parameters=None, experiment=None):
+        agent.load()
+        steps_per_ep = int(simTime/stepTime)
+
+        logger = Logger(True, tags, parameters, experiment=experiment)
+        logger.begin_logging(1, steps_per_ep)
+        add_noise = False
+
+        obs_dim = 1
+        time_offset = history_length//obs_dim*stepTime
+
+        try:
+            self.env.run()
+        except AlreadyRunningException as e:
+            pass
+
+        cumulative_reward = 0
+        reward = 0
+        sent_mb = 0
+
+        obs = self.env.reset()
+        obs = self.preprocess(np.reshape(obs, (-1, len(self.env.envs), obs_dim)))
+
+        with tqdm.trange(steps_per_ep) as t:
+            for step in t:
+                self.debug = obs
+
+                self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
+                next_obs, reward, done, info = self.env.step(self.actions)
+
+                next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
+
+                cumulative_reward += np.mean(reward)
+
+                if step>(history_length/obs_dim):
+                    logger.log_round(obs, reward, cumulative_reward, info, agent.get_loss(), np.mean(obs, axis=0)[0], step)
+                t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
+
+                obs = next_obs
+
+                if(any(done)):
+                    break
+
+        self.env.close()
+        self.env = EnvWrapper(self.env.no_threads, **self.env.params)
+
+        print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEval finished\n")
+
+        logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), 0)
+
+        logger.end()
+        return logger
+
 
     def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None, experiment=None):
         steps_per_ep = int(simTime/stepTime)
@@ -112,7 +165,7 @@ class Teacher:
             except AlreadyRunningException as e:
                 pass
 
-            if i>=EPISODE_COUNT*4/5-1:
+            if i>=EPISODE_COUNT*4/5:
                 add_noise = False
                 print("Turning off noise")
 
@@ -135,7 +188,7 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.actions, reward, next_obs, done, 1)
+                        agent.step(obs, self.actions, reward, next_obs, done, 3)
 
                     cumulative_reward += np.mean(reward)
 

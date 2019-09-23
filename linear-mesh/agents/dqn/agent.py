@@ -37,7 +37,7 @@ class Agent:
     def __del__(self):
         tf.reset_default_graph()
 
-    def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
+    def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=2, checkpoint_file=None):
         """Initialize an Agent object.
 
         Params
@@ -90,6 +90,7 @@ class Agent:
                               lambda: tf.argmax(
                                   self.qnetwork_local.output, output_type=tf.int32, axis=1),
                               lambda: tf.random_uniform([1], minval=0, maxval=action_size, dtype=tf.int32))
+        self.no_noise_act_op = tf.argmax(self.qnetwork_local.output, output_type=tf.int32, axis=1)
 
         self.sess.run([tf.local_variables_initializer(),
                        tf.global_variables_initializer()])
@@ -162,9 +163,7 @@ class Agent:
             if add_noise:
                 res.append(self.sess.run(self.act_op, feed_dict={self.qnetwork_local.input: sim}))
             else:
-                res.append(self.sess.run(tf.argmax(
-                                  self.qnetwork_local.output, output_type=tf.int32, axis=1), 
-                                  feed_dict={self.qnetwork_local.input: sim}))
+                res.append(self.sess.run(self.no_noise_act_op, feed_dict={self.qnetwork_local.input: sim}))
 
         return res
 

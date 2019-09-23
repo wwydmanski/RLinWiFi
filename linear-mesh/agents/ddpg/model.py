@@ -28,7 +28,7 @@ def hidden_init(layer):
 class Actor(nn.Module):
     """Actor (Policy) Model."""
 
-    def __init__(self, state_size, action_size, seed, batch_size, fc_units=128, fc2_units=64, fc3_units=32):
+    def __init__(self, state_size, action_size, seed, batch_size, fc_units=8, fc2_units=64, fc3_units=32):
         """Initialize parameters and build model.
 
         Args:
@@ -45,7 +45,7 @@ class Actor(nn.Module):
         # self.state_size = np.ceil(state_size/(state_size//4)).astype(int)
         self.seed = torch.manual_seed(seed)
         self.norm = torch.nn.BatchNorm1d(np.ceil(state_size/(state_size//4)).astype(int))
-        self.lstm1 = nn.LSTM(4, fc_units)
+        self.lstm1 = nn.LSTM(2, fc_units)
         self.norm1 = torch.nn.BatchNorm1d(fc_units)
         self.fc2 = nn.Linear(fc_units, fc2_units)
         self.norm2 = torch.nn.BatchNorm1d(fc2_units)
@@ -79,14 +79,14 @@ class Actor(nn.Module):
         # x = self.norm2(x)
         # return torch.tanh(self.fc3(x))
         x = F.relu(self.fc3(x))
-        x = self.dropout(x)
-        return torch.tanh(self.fc4(x))
+        # x = self.dropout(x)
+        return self.fc4(x)
 
 
 class Critic(nn.Module):
     """Critic (Value) Model."""
 
-    def __init__(self, state_size, action_size, seed, batch_size, fcs1_units=512, fc2_units=256, fc3_units=64):
+    def __init__(self, state_size, action_size, seed, batch_size, fcs1_units=8, fc2_units=64, fc3_units=32):
         """Initialize parameters and build model.
         Params
         ======
@@ -103,10 +103,9 @@ class Critic(nn.Module):
 
         self.seed = torch.manual_seed(seed)
 
-        self.lstm1 = nn.LSTM(4, fcs1_units)
+        self.lstm1 = nn.LSTM(2, fcs1_units)
         self.norm1 = torch.nn.BatchNorm1d(fcs1_units)
         self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
-        # self.fc3 = nn.Linear(fc2_units, 1)
         self.fc3 = nn.Linear(fc2_units, fc3_units)
         self.fc4 = nn.Linear(fc3_units, 1)
 
@@ -125,21 +124,10 @@ class Critic(nn.Module):
         h0 = torch.randn(1, state.shape[1], self.fc_units).to(device)
         c0 = torch.randn(1, state.shape[1], self.fc_units).to(device)
 
-        # for i in state:
-        #     x, hidden = self.lstm1(i.view(1, 1, -1), hidden)
-        # print(hidden.size())
-        # inp = state.view(self.state_size, -1, 3).cpu().numpy()
-        # inp = torch.from_numpy(signal_to_stats(inp).copy()).to(device)
-        # print("State shape", state.shape)
-
         xs, _ = self.lstm1(state, (h0, c0))
         x = F.relu(xs[-1])
-        # xs = self.norm1(x)
-        # print("x shape", x.shape)
-        # print("action shape", action.shape)
         x = torch.cat((x, action), dim=1)
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
 
-        # return self.fc3(x)
         return self.fc4(x)

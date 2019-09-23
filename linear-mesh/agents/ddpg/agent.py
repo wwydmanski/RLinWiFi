@@ -34,7 +34,7 @@ class Agent:
         self.config = config
 
         self.action_size = action_size
-        self.noise = OUNoise(action_size, random_seed, mu=0.1, theta=0.3, sigma=0.7)
+        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=500, theta=0.55)
 
         if actor_layers is None:
             self.actor_local = Actor(
@@ -112,15 +112,16 @@ class Agent:
         state = torch.from_numpy(state).float().to(device)
         self.actor_local.eval()
         with torch.no_grad():
-            action_values = self.actor_local(state).cpu().data.numpy()
+            action_values = np.clip(self.actor_local(state).cpu().data.numpy(), 16, 1024)
         self.actor_local.train()
 
         if add_noise:
             for i in range(action_values.shape[0]):
-                action_values[i] += (self.noise.sample()-0.8) / \
-                    np.sqrt(self.episodes_passed)
+                action_values[i] += self.noise.sample()
+                # action_values[i] += (self.noise.sample()-0.8) / \
+                #     np.sqrt(self.episodes_passed)
 
-        return np.clip(action_values, -1, 1)
+        return np.clip(action_values, 16, 1024)
 
     def step(self, states, actions, rewards, next_states, dones, training_steps=1):
         for action, reward, done, i in zip(actions, rewards, dones, range(len(rewards))):
@@ -218,6 +219,37 @@ class Agent:
         self.episodes_passed = 1
 
         self.notifications = 0
+
+    def save(self):
+        torch.save(self.actor_local.state_dict(), "models/ddpg_actor.torch")
+        torch.save(self.critic_local.state_dict(), "models/ddpg_critic.torch")
+
+    def load(self):
+        self.actor_local.load_state_dict(torch.load("models/ddpg_actor_15_convergence.torch"))
+        self.critic_local.load_state_dict(torch.load("models/ddpg_critic_15_convergence.torch"))
+
+class NormalNoise:
+    def __init__(self, size, seed, mu=0., sigma=0.2, theta=0.6):
+        """Initialize parameters and noise proces:
+
+        Arguments:
+            size (int): number of output values
+            seed (int): disregarded
+            mu (float): mean of values
+            sigma (float): standard deviation
+            theta (float): rate of sigma diminishing
+          """
+        self.mu = mu
+        self.sigma = sigma
+        self.size = size
+        self.theta = theta
+
+    def reset(self):
+        """Reduce sigma"""
+        self.sigma *= self.theta
+
+    def sample(self):
+        return np.random.normal(self.mu, self.sigma, self.size)
 
 class OUNoise:
     """Ornstein-Uhlenbeck process."""
