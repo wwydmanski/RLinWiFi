@@ -124,7 +124,11 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     }
     else if (type == "continuous")
     {
-        //CW = pow(2, actionVector.at(0) + 4);
+        CW = pow(2, actionVector.at(0) + 4);
+        /* CW = actionVector.at(0); */
+    }
+    else if (type == "direct_continuous")
+    {
         CW = actionVector.at(0);
     }
     else

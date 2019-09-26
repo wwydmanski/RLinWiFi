@@ -7,10 +7,10 @@ import subprocess
 from collections import deque
 import numpy as np
 
-# from agents.dqn.agent import Agent, Config
-# from agents.dqn.model import QNetworkTf
-from agents.ddpg.agent import Agent, Config
-from agents.ddpg.model import Actor
+from agents.dqn.agent import Agent, Config
+from agents.dqn.model import QNetworkTf
+# from agents.ddpg.agent import Agent, Config
+# from agents.ddpg.model import Actor
 from agents.teacher import Teacher, EnvWrapper
 from preprocessor import Preprocessor
 
@@ -29,8 +29,8 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "convergence",
-    "nWifi": 30,
+    "scenario": "basic",
+    "nWifi": 50,
 }
 
 print("Steps per episode:", steps_per_ep)
@@ -54,24 +54,24 @@ teacher = Teacher(env, 1, Preprocessor(False))
 # actor_l = [64, 32, 16]
 # critic_l = [64, 32, 16]
 
-lr_actor = 4e-4
-lr_critic = 4e-3
+# lr_actor = 4e-3
+# lr_critic = 4e-3
 
-config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
-# lr = 4e-4
-# config = Config(buffer_size=3*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
-# agent = Agent(QNetworkTf, history_length, action_size=7, config=config)
-# agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-2)
-agent = Agent(history_length, action_size=1, config=config, actor_layers=[8, 128, 64], critic_layers=[8,128,64])
+# config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.8, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
+lr = 4e-4
+config = Config(buffer_size=3*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
+agent = Agent(QNetworkTf, history_length, action_size=7, config=config)
+agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-2)
+# agent = Agent(history_length, action_size=1, config=config, actor_layers=[8, 128, 64], critic_layers=[8,128,64])
 
 # Test the model
 hyperparams = {**config.__dict__, **sim_args}
 tags = ["Rew: normalized speed",
         f"{Agent.NAME}",
         sim_args['scenario'],
-        # f"LR: {lr}",
-        f"Actor: {lr_actor}",
-        f"Critic: {lr_critic}",
+        f"LR: {lr}",
+        # f"Actor: {lr_actor}",
+        # f"Critic: {lr_critic}",
         f"Instances: {threads_no}",
         f"Station count: {sim_args['nWifi']}",
         *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]

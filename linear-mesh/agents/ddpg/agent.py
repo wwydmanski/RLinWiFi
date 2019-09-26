@@ -27,14 +27,16 @@ class Config:
 
 
 class Agent:
-    TYPE = "continuous"
+    TYPE = "direct_continuous"
     NAME = "DDPG"
-    
+
     def __init__(self, state_size, action_size, config=Config(), random_seed=42, actor_layers=None, critic_layers=None):
+        print("CuDNN version:", torch.backends.cudnn.version())
+        print("cuda:0" if torch.cuda.is_available() else "cpu")
         self.config = config
 
         self.action_size = action_size
-        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=500, theta=0.55)
+        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=3, theta=0.7)
 
         if actor_layers is None:
             self.actor_local = Actor(
@@ -74,9 +76,8 @@ class Agent:
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
-        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10, gamma=0.1)
-        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10, gamma=0.1)
-
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=6, gamma=0.1)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=6, gamma=0.1)
         self.episodes_passed = 1
 
         self.notifications = 0
@@ -92,8 +93,8 @@ class Agent:
         self.critic_optimizer = torch.optim.Adam(
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
 
-        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=5, gamma=0.1)
-        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=5, gamma=0.1)
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=6, gamma=0.1)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=6, gamma=0.1)
 
         self.t_step = 0
 

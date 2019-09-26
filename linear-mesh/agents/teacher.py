@@ -11,7 +11,7 @@ import time
 class Logger:
     def __init__(self, send_logs, tags, parameters, experiment=None):
         self.send_logs = send_logs
-        if self.send_logs: 
+        if self.send_logs:
             if experiment is None:
                 self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
                                 project_name="rl-in-wifi", workspace="wwydmanski")
