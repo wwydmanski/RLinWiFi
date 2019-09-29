@@ -36,7 +36,7 @@ class Agent:
         self.config = config
 
         self.action_size = action_size
-        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=3, theta=0.7)
+        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=256, theta=0.7)
 
         if actor_layers is None:
             self.actor_local = Actor(
@@ -198,7 +198,7 @@ class Agent:
         self.noise.reset()
         self.episodes_passed += 1
         self.actor_scheduler.step()
-        self.critic_scheduler.step()
+        # self.critic_scheduler.step()
 
     def get_loss(self):
         return {"actor_loss": self.actor_loss, "critic_loss": self.critic_loss}

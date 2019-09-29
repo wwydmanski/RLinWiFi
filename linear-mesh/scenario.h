@@ -20,21 +20,22 @@ class Scenario
     NodeContainer wifiApNode;
     int port;
     std::string offeredLoad;
+    std::vector<double> start_times;
+    std::vector<double> end_times;
 
     void installTrafficGenerator(ns3::Ptr<ns3::Node> fromNode,
                                  ns3::Ptr<ns3::Node> toNode,
                                  int port,
                                  std::string offeredLoad,
                                  double startTime,
-                                 double simulationTime,
-                                 double envStepTime,
+                                 double endTime,
                                  ns3::Callback<void, Ptr<const Packet>> callback);
 
   public:
     Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad);
     virtual void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback) = 0;
     void PopulateARPcache();
-    std::vector<double> install_times;
+    int getActiveStationCount(double time);
 };
 
 class BasicScenario : public Scenario
@@ -101,9 +102,20 @@ Scenario::Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNo
     this->offeredLoad = offeredLoad;
 }
 
-void Scenario::installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad, double startTime, double simulationTime, double envStepTime,
+int Scenario::getActiveStationCount(double time) 
+{
+    int res=0;
+    for(uint i=0; i<start_times.size(); i++)
+        if(start_times.at(i)<time && time<end_times.at(i))
+            res++;
+    return res;
+}
+
+void Scenario::installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad, double startTime, double endTime,
                                        ns3::Callback<void, Ptr<const Packet>> callback)
 {
+    start_times.push_back(startTime);
+    end_times.push_back(endTime);
 
     Ptr<Ipv4> ipv4 = toNode->GetObject<Ipv4>();           // Get Ipv4 instance of the node
     Ipv4Address addr = ipv4->GetAddress(1, 0).GetLocal(); // Get Ipv4InterfaceAddress of xth interface.
@@ -133,13 +145,13 @@ void Scenario::installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> t
     // sinkApplications.Add (packetSinkHelper.Install (toNode)); //toNode
 
     sinkApplications.Start(Seconds(startTime));
-    sinkApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
+    sinkApplications.Stop(Seconds(endTime));
 
     Ptr<UdpServer> udpServer = DynamicCast<UdpServer>(sinkApplications.Get(0));
     udpServer->TraceConnectWithoutContext("Rx", callback);
 
     sourceApplications.Start(Seconds(startTime));
-    sourceApplications.Stop(Seconds(simulationTime + 2 + envStepTime));
+    sourceApplications.Stop(Seconds(endTime));
 }
 
 void Scenario::PopulateARPcache()
@@ -197,7 +209,7 @@ void BasicScenario::installScenario(double simulationTime, double envStepTime, n
 {
     for (int i = 0; i < this->nWifim; ++i)
     {
-        installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 0.0, simulationTime, envStepTime, callback);
+        installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 0.0, simulationTime + 2 + envStepTime, callback);
     }
 }
 
@@ -208,12 +220,11 @@ void ConvergenceScenario::installScenario(double simulationTime, double envStepT
     {
         for (int i = 0; i < 5; ++i)
         {
-            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 1.0, simulationTime, envStepTime, callback);
+            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 1.0, simulationTime + 2 + envStepTime, callback);
         }
         for (int i = 5; i < this->nWifim; ++i)
         {
-            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, (i - 4) * delta, simulationTime, envStepTime, callback);
-            install_times.push_back((i - 4) * delta);
+            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, (i - 4) * delta, simulationTime + 2 + envStepTime, callback);
         }
     }
     else

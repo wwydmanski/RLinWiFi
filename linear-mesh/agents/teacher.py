@@ -40,6 +40,7 @@ class Logger:
             raise e
         self.sent_mb += round_mb
         CW = np.mean([float(i.split("|")[1]) for i in info])
+        stations = np.mean([float(i.split("|")[2]) for i in info])
 
         if self.send_logs:
             self.experiment.log_metric("Round reward", np.mean(reward), step=step)
@@ -47,6 +48,7 @@ class Logger:
             self.experiment.log_metric("Megabytes sent", self.sent_mb, step=step)
             self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
             self.experiment.log_metric("Chosen CW", CW, step=step)
+            self.experiment.log_metric("Station count", stations, step=step)
 
             for i, obs in enumerate(observations):
                 self.experiment.log_metric(f"Observation {i}", obs, step=step)

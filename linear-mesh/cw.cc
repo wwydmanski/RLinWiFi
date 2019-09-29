@@ -86,14 +86,17 @@ uint64_t g_txPktNum = 0;
 
 std::string MyGetExtraInfo(void)
 {
+    static float ticks = 0.0;
     static float lastValue = 0.0;
     float obs = g_rxPktNum - lastValue;
     lastValue = g_rxPktNum;
+    ticks += envStepTime;
 
     float sentMbytes = obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
 
     std::string myInfo = std::to_string(sentMbytes);
     myInfo = myInfo + "|" + to_string(CW) + "|";
+    myInfo = myInfo + to_string(wifiScenario->getActiveStationCount(ticks));
     // for (uint32_t i = 0; i < wifiScenario->install_times.size(); i++)
         // myInfo += to_string(wifiScenario->install_times.at(i)) + " ";
 
@@ -455,6 +458,7 @@ int main(int argc, char *argv[])
     // history_length*=2;
 
     NS_LOG_UNCOND("Ns3Env parameters:");
+    NS_LOG_UNCOND("--nWifi: " << nWifi);
     NS_LOG_UNCOND("--simulationTime: " << simulationTime);
     NS_LOG_UNCOND("--openGymPort: " << openGymPort);
     NS_LOG_UNCOND("--envStepTime: " << envStepTime);
