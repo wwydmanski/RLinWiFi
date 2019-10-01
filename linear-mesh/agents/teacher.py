@@ -25,10 +25,12 @@ class Logger:
             if parameters is not None:
                 self.experiment.log_parameters(parameters)
 
-    def begin_logging(self, episode_count, steps_per_ep):
+    def begin_logging(self, episode_count, steps_per_ep, sigma, theta):
         if self.send_logs:
             self.experiment.log_parameter("Episode count", episode_count)
             self.experiment.log_parameter("Steps per episode", steps_per_ep)
+            self.experiment.log_parameter("theta", theta)
+            self.experiment.log_parameter("sigma", sigma)
 
     def log_round(self, states, reward, cumulative_reward, info, loss, observations, step):
         self.experiment.log_histogram_3d(states, name="Observations", step=step)
@@ -102,7 +104,7 @@ class Teacher:
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(True, tags, parameters, experiment=experiment)
-        logger.begin_logging(1, steps_per_ep)
+        logger.begin_logging(1, steps_per_ep, agent.noise.sigma, agent.noise.theta)
         add_noise = False
 
         obs_dim = 1
@@ -155,7 +157,7 @@ class Teacher:
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(send_logs, tags, parameters, experiment=experiment)
-        logger.begin_logging(EPISODE_COUNT, steps_per_ep)
+        logger.begin_logging(EPISODE_COUNT, steps_per_ep, agent.noise.sigma, agent.noise.theta)
         add_noise = True
 
         obs_dim = 1
@@ -186,7 +188,7 @@ class Teacher:
 
                     self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                     next_obs, reward, done, info = self.env.step(self.actions)
-
+                    # reward = 1-np.reshape(np.mean(next_obs), reward.shape)
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
