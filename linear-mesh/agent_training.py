@@ -30,7 +30,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "convergence",
-    "nWifi": 30,
+    "nWifi": 50,
 }
 
 print("Steps per episode:", steps_per_ep)
@@ -57,7 +57,7 @@ teacher = Teacher(env, 1, Preprocessor(False))
 lr_actor = 4e-4
 lr_critic = 4e-3
 
-config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
+config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=32, gamma=0.7, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
 # lr = 4e-4
 # config = Config(buffer_size=3*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
 # agent = Agent(QNetworkTf, history_length, action_size=7, config=config)
