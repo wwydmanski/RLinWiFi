@@ -27,7 +27,7 @@ class Config:
 
 
 class Agent:
-    TYPE = "direct_continuous"
+    TYPE = "continuous"
     NAME = "DDPG"
 
     def __init__(self, state_size, action_size, config=Config(), random_seed=42, actor_layers=None, critic_layers=None):
@@ -36,7 +36,7 @@ class Agent:
         self.config = config
 
         self.action_size = action_size
-        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=512, theta=0.55)
+        self.noise = NormalNoise(action_size, random_seed, mu=0, sigma=4, theta=0.7)
 
         if actor_layers is None:
             self.actor_local = Actor(
@@ -76,8 +76,8 @@ class Agent:
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
         self.t_step = 0
 
-        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=3, gamma=0.1)
-        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=3, gamma=0.1)
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10, gamma=0.1)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10, gamma=0.1)
         self.episodes_passed = 1
 
         self.notifications = 0
@@ -93,8 +93,8 @@ class Agent:
         self.critic_optimizer = torch.optim.Adam(
             self.critic_local.parameters(), lr=self.config.LR_CRITIC)
 
-        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=3, gamma=0.1)
-        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=3, gamma=0.1)
+        self.actor_scheduler = torch.optim.lr_scheduler.StepLR(self.actor_optimizer, step_size=10, gamma=0.1)
+        self.critic_scheduler = torch.optim.lr_scheduler.StepLR(self.critic_optimizer, step_size=10, gamma=0.1)
 
         self.t_step = 0
 
@@ -113,7 +113,7 @@ class Agent:
         state = torch.from_numpy(state).float().to(device)
         self.actor_local.eval()
         with torch.no_grad():
-            action_values = np.clip(self.actor_local(state).cpu().data.numpy(), 16, 1024)
+            action_values = np.clip(self.actor_local(state).cpu().data.numpy(), 0, 6)
         self.actor_local.train()
 
         if add_noise:
@@ -122,7 +122,7 @@ class Agent:
                 # action_values[i] += (self.noise.sample()-0.8) / \
                 #     np.sqrt(self.episodes_passed)
 
-        return np.clip(action_values, 16, 1024)
+        return np.clip(action_values, 0, 6)
 
     def step(self, states, actions, rewards, next_states, dones, training_steps=1):
         for action, reward, done, i in zip(actions, rewards, dones, range(len(rewards))):

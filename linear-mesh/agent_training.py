@@ -30,7 +30,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "convergence",
-    "nWifi": 30,
+    "nWifi": 50,
 }
 
 print("Steps per episode:", steps_per_ep)
@@ -50,9 +50,6 @@ assert ob_space is not None
 
 #%%
 teacher = Teacher(env, 1, Preprocessor(False))
-
-# actor_l = [64, 32, 16]
-# critic_l = [64, 32, 16]
 
 lr_actor = 4e-4
 lr_critic = 4e-3
