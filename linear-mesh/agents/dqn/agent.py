@@ -32,8 +32,12 @@ class Config:
 class Agent:
     """Interacts with and learns from the environment."""
     TYPE = "discrete"
+    NAME = "DQN"
 
-    def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=100, checkpoint_file=None):
+    def __del__(self):
+        tf.reset_default_graph()
+
+    def __init__(self, network, state_size, action_size, config=Config(), seed=42, save=True, save_loc='models/', save_every=2, checkpoint_file=None):
         """Initialize an Agent object.
 
         Params
@@ -86,6 +90,10 @@ class Agent:
                               lambda: tf.argmax(
                                   self.qnetwork_local.output, output_type=tf.int32, axis=1),
                               lambda: tf.random_uniform([1], minval=0, maxval=action_size, dtype=tf.int32))
+        self.no_noise_act_op = tf.argmax(self.qnetwork_local.output, output_type=tf.int32, axis=1)
+
+        self.sess.run([tf.local_variables_initializer(),
+                       tf.global_variables_initializer()])
 
     def reset_all(self):
         self.sess.close()
@@ -116,7 +124,7 @@ class Agent:
 
         return [tvar.assign(self.config.TAU*qvar + (1.0-self.config.TAU)*tvar) for qvar, tvar in zip(Qvars, target_vars)]
 
-    def step(self, state, action, reward, next_state, done):
+    def step(self, state, action, reward, next_state, done, iter_count=1):
         """ Stores SARS in memory for further processing and teaches agent based
 
         Args:
@@ -137,18 +145,27 @@ class Agent:
                 elif self.notifications == 1 and len(self.memory) == self.config.BUFFER_SIZE:
                     print("------- MEMORY BUFFER FILLED -------")
                     self.notifications = -1
-                experiences = self.memory.sample()
-                self.learn(experiences, self.config.GAMMA)
+                for i in range(iter_count):
+                    experiences = self.memory.sample()
+                    self.learn(experiences, self.config.GAMMA)
 
-    def act(self, state, mode="train"):
+    def act(self, state, add_noise=True):
         """Returns actions for given state as per current policy.
 
         Params
         ======
             state (array_like): current state
-            mode (str): "train" or "test", for strategy choosing
+            add_noise (bool): false for greedy strategy
         """
-        return self.sess.run(self.act_op, feed_dict={self.qnetwork_local.input: state})
+        res = []
+        for sim_id in range(state.shape[1]):
+            sim = np.expand_dims(state[:, sim_id], 1)
+            if add_noise:
+                res.append(self.sess.run(self.act_op, feed_dict={self.qnetwork_local.input: sim}))
+            else:
+                res.append(self.sess.run(self.no_noise_act_op, feed_dict={self.qnetwork_local.input: sim}))
+
+        return res
 
     def learn(self, experiences, gamma):
         """Update value parameters using given batch of experience tuples.
@@ -184,19 +201,17 @@ class Agent:
 
 
 class ReplayBuffer:
-    """Fixed-size buffer to store experience tuples.
-
-    Attributes:
-        action_size (int): dimension of each action
-        buffer_size (int): maximum size of buffer
-        batch_size (int): size of each training batch
-        seed (int): random seed 
-    """
+    """Fixed-size buffer to store experience tuples."""
 
     def __init__(self, action_size, buffer_size, batch_size, seed):
-        """Initialize a ReplayBuffer object."""
+        """Initialize a ReplayBuffer object.
+        Params
+        ======
+            buffer_size (int): maximum size of buffer
+            batch_size (int): size of each training batch
+        """
         self.action_size = action_size
-        self.memory = deque(maxlen=buffer_size)
+        self.memory = deque(maxlen=buffer_size)  # internal memory (deque)
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=[
                                      "state", "action", "reward", "next_state", "done"])
@@ -204,19 +219,22 @@ class ReplayBuffer:
 
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
-        e = self.experience(state, action, np.clip(
-            reward, -1, 1), next_state, done)
-        self.memory.append(e)
+        state = np.array(state)
+        next_state = np.array(next_state)
+
+        for sim_id in range(state.shape[1]):
+            e = self.experience(state[:, sim_id], action[sim_id], reward[sim_id], next_state[:, sim_id], done[sim_id])
+            self.memory.append(e)
 
     def sample(self):
         """Randomly sample a batch of experiences from memory."""
         experiences = random.sample(self.memory, k=self.batch_size)
 
-        states = np.vstack([e.state for e in experiences if e is not None])
+        states = np.stack([e.state for e in experiences if e is not None], 1)
         actions = np.vstack([e.action for e in experiences if e is not None])
         rewards = np.vstack([e.reward for e in experiences if e is not None])
-        next_states = np.vstack(
-            [e.next_state for e in experiences if e is not None])
+        next_states = np.stack(
+            [e.next_state for e in experiences if e is not None], 1)
         dones = np.vstack(
             [e.done for e in experiences if e is not None]).astype(np.uint8)
 

@@ -86,14 +86,17 @@ uint64_t g_txPktNum = 0;
 
 std::string MyGetExtraInfo(void)
 {
+    static float ticks = 0.0;
     static float lastValue = 0.0;
     float obs = g_rxPktNum - lastValue;
     lastValue = g_rxPktNum;
+    ticks += envStepTime;
 
     float sentMbytes = obs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
 
     std::string myInfo = std::to_string(sentMbytes);
     myInfo = myInfo + "|" + to_string(CW) + "|";
+    myInfo = myInfo + to_string(wifiScenario->getActiveStationCount(ticks));
     // for (uint32_t i = 0; i < wifiScenario->install_times.size(); i++)
         // myInfo += to_string(wifiScenario->install_times.at(i)) + " ";
 
@@ -116,14 +119,15 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
     if (type == "discrete")
     {
-        if (actionVector.at(0) == 0)
-            CW /= 2;
-        else if (actionVector.at(0) == 2)
-            CW *= 2;
+        CW = pow(2, 4+actionVector.at(0));
     }
     else if (type == "continuous")
     {
-        CW = pow(2, actionVector.at(0) * 3 + 7);
+        CW = pow(2, actionVector.at(0) + 4);
+    }
+    else if (type == "direct_continuous")
+    {
+        CW = actionVector.at(0);
     }
     else
     {
@@ -145,14 +149,11 @@ float MyGetReward(void)
 {
     static float ticks = 0.0;
     static uint32_t last_packets = 0;
-    static float last_speed = 0.0;
+    static float last_reward = 0.0;
     ticks += envStepTime;
 
     float res = g_rxPktNum - last_packets;
-    // float speed_improv = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - last_speed;
-
-    // last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime / simulationTime) - 0.5;
-    last_speed = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime) * 10 - 0.5;
+    float reward = res * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024 / (5 * 150 * envStepTime) * 10;
 
     last_packets = g_rxPktNum;
 
@@ -160,12 +161,12 @@ float MyGetReward(void)
         return 0.0;
 
     if (verbose)
-        NS_LOG_UNCOND("MyGetReward: " << last_speed);
+        NS_LOG_UNCOND("MyGetReward: " << reward);
 
-    if(last_speed>-0.5 && last_speed<0.5)
-        return last_speed;
-    else
-        return 0;
+    if(reward>1.0f || reward<0.0f)
+        reward = last_reward;
+    last_reward = reward;
+    return last_reward;
 }
 
 /*
@@ -221,33 +222,13 @@ void recordHistory()
     float received = g_rxPktNum - last_rx;
     float sent = g_txPktNum - last_tx;
     float errs = sent - received;
-    // int stations_online = 5;
-
-    // for (uint32_t i = 0; i < wifiScenario->install_times.size(); i++)
-        // if (ns3::Simulator::Now().GetSeconds() > wifiScenario->install_times.at(i))
-            // stations_online++;
-
-    // history.push_front(errs * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024);
     float ratio;
-    // if (g_txPktNum == last_tx)
-    // {
-    //     ratio = 0;
-    //     errs = 0;
-    // }
-    // else
-    // {
-    ratio = errs / sent;
-    // }
 
-    // history.push_front(g_txPktNum - last_tx);
+    ratio = errs / sent;
     history.push_front(ratio);
-    history.push_front(ratio);
-    // history.push_front(stations_online);
-    // history.push_front(stations_online);
 
     if (history.size() > history_length)
     {
-        history.pop_back();
         history.pop_back();
     }
     last_rx = g_rxPktNum;
@@ -259,7 +240,6 @@ void recordHistory()
     }
     else if (calls == history_length && non_zero_start)
     {
-        // lastValue = -obs;
         g_rxPktNum = 0;
         g_txPktNum = 0;
         last_rx = 0;
@@ -353,6 +333,12 @@ void set_nodes(int channelWidth, int rng, uint32_t simSeed, NodeContainer wifiSt
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
     }
+    else
+    {
+        NS_LOG_UNCOND("Default CW");
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(16));
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(1024));
+    }
 }
 
 void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansWifiPhyHelper phy, NetDeviceContainer apDevice, int end_delay, Ptr<FlowMonitor> &monitor, FlowMonitorHelper &flowmon)
@@ -439,6 +425,7 @@ int main(int argc, char *argv[])
     // history_length*=2;
 
     NS_LOG_UNCOND("Ns3Env parameters:");
+    NS_LOG_UNCOND("--nWifi: " << nWifi);
     NS_LOG_UNCOND("--simulationTime: " << simulationTime);
     NS_LOG_UNCOND("--openGymPort: " << openGymPort);
     NS_LOG_UNCOND("--envStepTime: " << envStepTime);
@@ -515,7 +502,8 @@ int main(int argc, char *argv[])
     set_sim(tracing, dry_run, warmup, openGymPort, phy, apDevice, end_delay, monitor, flowmon);
 
     double flowThr;
-
+    float res =  g_rxPktNum * (1500 - 20 - 8 - 8) * 8.0 / 1024 / 1024;
+    printf("Sent mbytes: %.2f\tThroughput: %.3f", res, res/simulationTime);
     ofstream myfile;
     myfile.open(outputCsv, ios::app);
 

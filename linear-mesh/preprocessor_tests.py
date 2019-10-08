@@ -16,7 +16,7 @@ scenario = "convergence"
 
 simTime = 30 # seconds
 stepTime = 0.1  # seconds
-history_length = 60
+history_length = 300
 
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
