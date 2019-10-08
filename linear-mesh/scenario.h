@@ -22,6 +22,7 @@ class Scenario
     std::string offeredLoad;
     std::vector<double> start_times;
     std::vector<double> end_times;
+    int history_length;
 
     void installTrafficGenerator(ns3::Ptr<ns3::Node> fromNode,
                                  ns3::Ptr<ns3::Node> toNode,
@@ -32,7 +33,7 @@ class Scenario
                                  ns3::Callback<void, Ptr<const Packet>> callback);
 
   public:
-    Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad);
+    Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad, int history_length);
     virtual void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback) = 0;
     void PopulateARPcache();
     int getActiveStationCount(double time);
@@ -61,16 +62,18 @@ class ScenarioFactory
     NodeContainer wifiStaNode;
     NodeContainer wifiApNode;
     int port;
+    int history_length;
     std::string offeredLoad;
 
   public:
-    ScenarioFactory(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad)
+    ScenarioFactory(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad, int history_length)
     {
         this->nWifim = nWifim;
         this->wifiStaNode = wifiStaNode;
         this->wifiApNode = wifiApNode;
         this->port = port;
         this->offeredLoad = offeredLoad;
+        this->history_length = history_length;
     }
 
     Scenario *getScenario(std::string scenario)
@@ -78,11 +81,11 @@ class ScenarioFactory
         Scenario *wifiScenario;
         if (scenario == "basic")
         {
-            wifiScenario = new BasicScenario(this->nWifim, this->wifiStaNode, this->wifiApNode, this->port, this->offeredLoad);
+            wifiScenario = new BasicScenario(this->nWifim, this->wifiStaNode, this->wifiApNode, this->port, this->offeredLoad, this->history_length);
         }
         else if (scenario == "convergence")
         {
-            wifiScenario = new ConvergenceScenario(this->nWifim, this->wifiStaNode, this->wifiApNode, this->port, this->offeredLoad);
+            wifiScenario = new ConvergenceScenario(this->nWifim, this->wifiStaNode, this->wifiApNode, this->port, this->offeredLoad, this->history_length);
         }
         else
         {
@@ -93,13 +96,14 @@ class ScenarioFactory
     }
 };
 
-Scenario::Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad)
+Scenario::Scenario(int nWifim, NodeContainer wifiStaNode, NodeContainer wifiApNode, int port, std::string offeredLoad, int history_length)
 {
     this->nWifim = nWifim;
     this->wifiStaNode = wifiStaNode;
     this->wifiApNode = wifiApNode;
     this->port = port;
     this->offeredLoad = offeredLoad;
+    this->history_length = history_length;
 }
 
 int Scenario::getActiveStationCount(double time) 
@@ -209,22 +213,23 @@ void BasicScenario::installScenario(double simulationTime, double envStepTime, n
 {
     for (int i = 0; i < this->nWifim; ++i)
     {
-        installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 0.0, simulationTime + 2 + envStepTime, callback);
+        installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 0.0, simulationTime + 2 + envStepTime*history_length, callback);
     }
 }
 
 void ConvergenceScenario::installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback)
 {
-    float delta = simulationTime/(this->nWifim-5);
+    float delta = simulationTime/(this->nWifim-4);
+    float delay = history_length*envStepTime;
     if (this->nWifim > 5)
     {
         for (int i = 0; i < 5; ++i)
         {
-            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 1.0, simulationTime + 2 + envStepTime, callback);
+            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, 0.0 , simulationTime + 2 + delay, callback);
         }
         for (int i = 5; i < this->nWifim; ++i)
         {
-            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, (i - 4) * delta, simulationTime + 2 + envStepTime, callback);
+            installTrafficGenerator(this->wifiStaNode.Get(i), this->wifiApNode.Get(0), this->port++, this->offeredLoad, delay+(i - 4) * delta, simulationTime + 2 + delay, callback);
         }
     }
     else

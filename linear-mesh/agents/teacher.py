@@ -154,7 +154,7 @@ class Teacher:
 
 
     def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None, experiment=None):
-        steps_per_ep = int(simTime/stepTime)
+        steps_per_ep = int(simTime/stepTime + history_length)
 
         logger = Logger(send_logs, tags, parameters, experiment=experiment)
         try:
@@ -216,9 +216,9 @@ class Teacher:
                 self.env = EnvWrapper(self.env.no_threads, **self.env.params)
 
             agent.reset()
-            print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
+            print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
 
-            logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), i)
+            logger.log_episode(cumulative_reward, logger.sent_mb/(simTime), i)
 
         logger.end()
         print("Training finished.")

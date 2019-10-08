@@ -478,7 +478,7 @@ int main(int argc, char *argv[])
     NetDeviceContainer apDevice;
     set_nodes(channelWidth, rng, simSeed, wifiStaNode, wifiApNode, phy, mac, wifi, apDevice);
 
-    ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad);
+    ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad, history_length);
     wifiScenario = helper.getScenario(scenario);
 
     if (!dry_run)
