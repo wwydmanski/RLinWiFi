@@ -197,7 +197,7 @@ class Agent:
         self.noise.reset()
         self.episodes_passed += 1
         self.actor_scheduler.step()
-        # self.critic_scheduler.step()
+        self.critic_scheduler.step()
 
     def get_loss(self):
         return {"actor_loss": self.actor_loss, "critic_loss": self.critic_loss}
