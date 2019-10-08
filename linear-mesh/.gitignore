@@ -1,5 +1,6 @@
 .ipynb_checkpoints/
 **/__pycache__
+models/
 .vs/
 .vscode
 workspace.bat
