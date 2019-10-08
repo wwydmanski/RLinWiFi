@@ -157,7 +157,11 @@ class Teacher:
         steps_per_ep = int(simTime/stepTime)
 
         logger = Logger(send_logs, tags, parameters, experiment=experiment)
-        logger.begin_logging(EPISODE_COUNT, steps_per_ep, agent.noise.sigma, agent.noise.theta)
+        try:
+            logger.begin_logging(EPISODE_COUNT, steps_per_ep, agent.noise.sigma, agent.noise.theta)
+        except  AttributeError:
+            logger.begin_logging(EPISODE_COUNT, steps_per_ep, None, None)
+
         add_noise = True
 
         obs_dim = 1

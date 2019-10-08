@@ -2,17 +2,17 @@ import matplotlib.pyplot as plt
 
 # plt.style.use("seaborn")
 
-BEB = [39.15, 34.47, 30.64, 27.1]
-DDPG = [40.83, 39.91, 39.64, 39.65]
-DQN = [39.66, 38.79, 38.56, 38.19]
+BEB = [38.39, 35.3, 33.6, 29.75]
+DDPG = [40.82, 40, 39.72, 39.34]
+DQN = [40.69, 39.74, 39.25, 39.11]
 
 RANGE = [5, 15, 30, 50]
 
 plt.plot(RANGE, BEB, 'o-', label="BEB")
-plt.plot(RANGE, DDPG, 'o-', label="DDPG (ours)")
+plt.plot(RANGE, DDPG, 'o-', label="DDPG")
 plt.xlabel("Number of stations")
 plt.ylabel("Speed [Mb/s]")
 plt.plot(RANGE[:len(DQN)], DQN, 'o-', label="DQN")
-plt.title("BASIC scenario comparison")
-plt.legend()
+plt.title("CONVERGENCE scenario comparison")
+plt.legend(loc=3)
 plt.show()
