@@ -37,6 +37,7 @@ class Scenario
     virtual void installScenario(double simulationTime, double envStepTime, ns3::Callback<void, Ptr<const Packet>> callback) = 0;
     void PopulateARPcache();
     int getActiveStationCount(double time);
+    float getStationUptime(int id, double time);
 };
 
 class BasicScenario : public Scenario
@@ -113,6 +114,16 @@ int Scenario::getActiveStationCount(double time)
         if(start_times.at(i)<time && time<end_times.at(i))
             res++;
     return res;
+}
+
+float Scenario::getStationUptime(int id, double time) 
+{
+    return time - start_times.at(id);
+    // int res=0;
+    // for(uint i=0; i<start_times.size(); i++)
+    //     if(start_times.at(i)<time && time<end_times.at(i))
+    //         res++;
+    // return res;
 }
 
 void Scenario::installTrafficGenerator(Ptr<ns3::Node> fromNode, Ptr<ns3::Node> toNode, int port, string offeredLoad, double startTime, double endTime,

@@ -21,7 +21,7 @@ simTime = 60 # seconds
 stepTime = 0.01  # seconds
 history_length = 300
 
-EPISODE_COUNT = 15
+EPISODE_COUNT = 10
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
@@ -30,6 +30,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "convergence",
+    "nonZeroStart": True,
     "nWifi": 50,
 }
 

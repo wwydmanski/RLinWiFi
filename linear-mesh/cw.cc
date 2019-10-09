@@ -32,9 +32,12 @@ void recordHistory();
 
 double envStepTime = 0.1;
 double simulationTime = 10; //seconds
+double current_time = 0.0;
 bool verbose = false;
 int end_delay = 0;
 
+Ptr<FlowMonitor> monitor;
+FlowMonitorHelper flowmon;
 
 uint32_t CW = 0;
 uint32_t history_length = 20;
@@ -49,6 +52,8 @@ Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
+    current_time += envStepTime;
+
     float low = 0.0;
     float high = 10.0;
     std::vector<uint32_t> shape = {
@@ -84,6 +89,32 @@ Define extra info. Optional
 uint64_t g_rxPktNum = 0;
 uint64_t g_txPktNum = 0;
 
+double jain_index(void)
+{
+    double flowThr;
+    Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
+    std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats();
+
+    double nominator;
+    double denominator;
+    double n=0;
+    double station_id = 0;
+    for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i)
+    {
+        flowThr = i->second.rxBytes;
+        flowThr /= wifiScenario->getStationUptime(station_id, current_time);
+        if(flowThr>0){
+            nominator += flowThr;
+            denominator += flowThr*flowThr;
+            n++;
+        }
+        station_id++;
+    }
+    nominator *= nominator;
+    denominator *= n;
+    return nominator/denominator;
+}
+
 std::string MyGetExtraInfo(void)
 {
     static float ticks = 0.0;
@@ -96,9 +127,8 @@ std::string MyGetExtraInfo(void)
 
     std::string myInfo = std::to_string(sentMbytes);
     myInfo = myInfo + "|" + to_string(CW) + "|";
-    myInfo = myInfo + to_string(wifiScenario->getActiveStationCount(ticks));
-    // for (uint32_t i = 0; i < wifiScenario->install_times.size(); i++)
-        // myInfo += to_string(wifiScenario->install_times.at(i)) + " ";
+    myInfo = myInfo + to_string(wifiScenario->getActiveStationCount(ticks)) + "|";
+    myInfo = myInfo + to_string(jain_index());
 
     if (verbose)
         NS_LOG_UNCOND("MyGetExtraInfo: " << myInfo);
@@ -199,16 +229,16 @@ Ptr<OpenGymDataContainer> MyGetObservation()
 
 bool MyGetGameOver(void)
 {
-    bool isGameOver = (ns3::Simulator::Now().GetSeconds() > simulationTime + end_delay + 1.0);
-    return isGameOver;
+    // bool isGameOver = (ns3::Simulator::Now().GetSeconds() > simulationTime + end_delay + 1.0);
+    return false;
 }
 
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
 {
-    if(ns3::Simulator::Now().GetSeconds()<simulationTime + end_delay + 1.0)
-    {
-        Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
-    }
+    // if(ns3::Simulator::Now().GetSeconds()<simulationTime + end_delay + 1.0)
+    // {
+    Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    // }
     openGymInterface->NotifyCurrentState();
 }
 
@@ -372,7 +402,7 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
             Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
 
-    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 + envStepTime));
+    Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 + envStepTime*(history_length+1)));
 
     NS_LOG_UNCOND("Simulation started");
     Simulator::Run();
@@ -497,8 +527,7 @@ int main(int argc, char *argv[])
     wifiScenario->PopulateARPcache();
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    Ptr<FlowMonitor> monitor;
-    FlowMonitorHelper flowmon;
+
     set_sim(tracing, dry_run, warmup, openGymPort, phy, apDevice, end_delay, monitor, flowmon);
 
     double flowThr;
@@ -508,8 +537,8 @@ int main(int argc, char *argv[])
     myfile.open(outputCsv, ios::app);
 
     /* Contents of CSV output file
-  Timestamp, CW, nWifi, RngRun, SourceIP, DestinationIP, Throughput
-  */
+    Timestamp, CW, nWifi, RngRun, SourceIP, DestinationIP, Throughput
+    */
     Ptr<Ipv4FlowClassifier> classifier = DynamicCast<Ipv4FlowClassifier>(flowmon.GetClassifier());
     std::map<FlowId, FlowMonitor::FlowStats> stats = monitor->GetFlowStats();
     for (std::map<FlowId, FlowMonitor::FlowStats>::const_iterator i = stats.begin(); i != stats.end(); ++i)
