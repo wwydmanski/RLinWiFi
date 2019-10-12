@@ -21,7 +21,7 @@ simTime = 60 # seconds
 stepTime = 0.01  # seconds
 history_length = 300
 
-EPISODE_COUNT = 10
+EPISODE_COUNT = 15
 steps_per_ep = int(simTime/stepTime)
 
 sim_args = {
@@ -53,7 +53,7 @@ assert ob_space is not None
 teacher = Teacher(env, 1, Preprocessor(False))
 
 lr_actor = 4e-4
-lr_critic = 4e-3
+lr_critic = 4e-4
 
 config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
 agent = Agent(history_length, action_size=1, config=config, actor_layers=[8, 128, 64], critic_layers=[8,128,64])

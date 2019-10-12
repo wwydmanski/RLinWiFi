@@ -117,10 +117,13 @@ class Teacher:
 
     def eval(self, agent, simTime, stepTime, history_length, tags=None, parameters=None, experiment=None):
         agent.load()
-        steps_per_ep = int(simTime/stepTime)
+        steps_per_ep = int(simTime/stepTime + history_length)
 
         logger = Logger(True, tags, parameters, experiment=experiment)
-        logger.begin_logging(1, steps_per_ep, agent.noise.sigma, agent.noise.theta)
+        try:
+            logger.begin_logging(1, steps_per_ep, agent.noise.sigma, agent.noise.theta, stepTime)
+        except  AttributeError:
+            logger.begin_logging(1, steps_per_ep, None, None, stepTime)
         add_noise = False
 
         obs_dim = 1
@@ -161,9 +164,9 @@ class Teacher:
         self.env.close()
         self.env = EnvWrapper(self.env.no_threads, **self.env.params)
 
-        print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEval finished\n")
+        print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime):.2f} Mb/s\tEval finished\n")
 
-        logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), 0)
+        logger.log_episode(cumulative_reward, logger.sent_mb/(simTime), 0)
 
         logger.end()
         return logger
