@@ -18,7 +18,7 @@ from preprocessor import Preprocessor
 scenario = "convergence"
 
 simTime = 60 # seconds
-stepTime = 0.03  # seconds
+stepTime = 0.01  # seconds
 history_length = 300
 
 EPISODE_COUNT = 15
@@ -29,8 +29,8 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "convergence",
-    "nWifi": 15,
+    "scenario": "basic",
+    "nWifi": 30,
 }
 
 print("Steps per episode:", steps_per_ep)

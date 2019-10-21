@@ -4,6 +4,7 @@ import subprocess
 from comet_ml import Experiment
 from ns3gym import ns3env
 import matplotlib.pyplot as plt
+from collections import deque
 import time
 
 
@@ -18,14 +19,17 @@ class Logger:
             else:
                 self.experiment = experiment
         self.sent_mb = 0
-
+        self.speed_window = deque(maxlen=100)
+        self.step_time = None
+        self.current_speed = 0
         if self.send_logs:
             if tags is not None:
                 self.experiment.add_tags(tags)
             if parameters is not None:
                 self.experiment.log_parameters(parameters)
 
-    def begin_logging(self, episode_count, steps_per_ep, sigma, theta):
+    def begin_logging(self, episode_count, steps_per_ep, sigma, theta, step_time):
+        self.step_time = step_time
         if self.send_logs:
             self.experiment.log_parameter("Episode count", episode_count)
             self.experiment.log_parameter("Steps per episode", steps_per_ep)
@@ -34,15 +38,23 @@ class Logger:
 
     def log_round(self, states, reward, cumulative_reward, info, loss, observations, step):
         self.experiment.log_histogram_3d(states, name="Observations", step=step)
+        info = [[j for j in i.split("|")] for i in info]
+        info = np.mean(np.array(info, dtype=np.float32), axis=0)
         try:
-            round_mb = np.mean([float(i.split("|")[0]) for i in info])
+            # round_mb = np.mean([float(i.split("|")[0]) for i in info])
+            round_mb = info[0]
         except Exception as e:
             print(info)
             print(reward)
             raise e
+        self.speed_window.append(round_mb)
+        self.current_speed = np.mean(np.asarray(self.speed_window)/self.step_time)
         self.sent_mb += round_mb
-        CW = np.mean([float(i.split("|")[1]) for i in info])
-        stations = np.mean([float(i.split("|")[2]) for i in info])
+        # CW = np.mean([float(i.split("|")[1]) for i in info])
+        CW = info[1]
+        # stations = np.mean([float(i.split("|")[2]) for i in info])
+        stations = info[2]
+        fairness = info[3]
 
         if self.send_logs:
             self.experiment.log_metric("Round reward", np.mean(reward), step=step)
@@ -51,6 +63,8 @@ class Logger:
             self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
             self.experiment.log_metric("Chosen CW", CW, step=step)
             self.experiment.log_metric("Station count", stations, step=step)
+            self.experiment.log_metric("Current throughput", self.current_speed, step=step)
+            self.experiment.log_metric("Fairness index", fairness, step=step)
 
             for i, obs in enumerate(observations):
                 self.experiment.log_metric(f"Observation {i}", obs, step=step)
@@ -64,6 +78,8 @@ class Logger:
 
         self.sent_mb = 0
         self.last_speed = speed
+        self.speed_window = deque(maxlen=100)
+        self.current_speed = 0
 
     def end(self):
         if self.send_logs:
@@ -101,10 +117,13 @@ class Teacher:
 
     def eval(self, agent, simTime, stepTime, history_length, tags=None, parameters=None, experiment=None):
         agent.load()
-        steps_per_ep = int(simTime/stepTime)
+        steps_per_ep = int(simTime/stepTime + history_length)
 
         logger = Logger(True, tags, parameters, experiment=experiment)
-        logger.begin_logging(1, steps_per_ep, agent.noise.sigma, agent.noise.theta)
+        try:
+            logger.begin_logging(1, steps_per_ep, agent.noise.sigma, agent.noise.theta, stepTime)
+        except  AttributeError:
+            logger.begin_logging(1, steps_per_ep, None, None, stepTime)
         add_noise = False
 
         obs_dim = 1
@@ -135,7 +154,7 @@ class Teacher:
 
                 if step>(history_length/obs_dim):
                     logger.log_round(obs, reward, cumulative_reward, info, agent.get_loss(), np.mean(obs, axis=0)[0], step)
-                t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
+                t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb", curr_speed=f"{logger.current_speed:.2f} Mbps")
 
                 obs = next_obs
 
@@ -145,22 +164,22 @@ class Teacher:
         self.env.close()
         self.env = EnvWrapper(self.env.no_threads, **self.env.params)
 
-        print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEval finished\n")
+        print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime):.2f} Mb/s\tEval finished\n")
 
-        logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), 0)
+        logger.log_episode(cumulative_reward, logger.sent_mb/(simTime), 0)
 
         logger.end()
         return logger
 
 
     def train(self, agent, EPISODE_COUNT, simTime, stepTime, history_length, send_logs=True, experimental=True, tags=None, parameters=None, experiment=None):
-        steps_per_ep = int(simTime/stepTime)
+        steps_per_ep = int(simTime/stepTime + history_length)
 
         logger = Logger(send_logs, tags, parameters, experiment=experiment)
         try:
-            logger.begin_logging(EPISODE_COUNT, steps_per_ep, agent.noise.sigma, agent.noise.theta)
+            logger.begin_logging(EPISODE_COUNT, steps_per_ep, agent.noise.sigma, agent.noise.theta, stepTime)
         except  AttributeError:
-            logger.begin_logging(EPISODE_COUNT, steps_per_ep, None, None)
+            logger.begin_logging(EPISODE_COUNT, steps_per_ep, None, None, stepTime)
 
         add_noise = True
 
@@ -196,7 +215,7 @@ class Teacher:
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
                     if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.actions, reward, next_obs, done, 3)
+                        agent.step(obs, self.actions, reward, next_obs, done, 1)
 
                     cumulative_reward += np.mean(reward)
 
@@ -204,7 +223,7 @@ class Teacher:
 
                     if step>(history_length/obs_dim):
                         logger.log_round(obs, reward, cumulative_reward, info, agent.get_loss(), np.mean(obs, axis=0)[0], i*steps_per_ep+step)
-                    t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb")
+                    t.set_postfix(mb_sent=f"{logger.sent_mb:.2f} Mb", curr_speed=f"{logger.current_speed:.2f} Mbps")
 
                     obs = next_obs
 
@@ -216,9 +235,9 @@ class Teacher:
                 self.env = EnvWrapper(self.env.no_threads, **self.env.params)
 
             agent.reset()
-            print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime-time_offset):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
+            print(f"Sent {logger.sent_mb:.2f} Mb/s.\tMean speed: {logger.sent_mb/(simTime):.2f} Mb/s\tEpisode {i+1}/{EPISODE_COUNT} finished\n")
 
-            logger.log_episode(cumulative_reward, logger.sent_mb/(simTime-time_offset), i)
+            logger.log_episode(cumulative_reward, logger.sent_mb/(simTime), i)
 
         logger.end()
         print("Training finished.")
