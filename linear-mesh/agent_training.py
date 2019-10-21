@@ -29,8 +29,8 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "convergence",
-    "nWifi": 50,
+    "scenario": "basic",
+    "nWifi": 30,
 }
 
 print("Steps per episode:", steps_per_ep)
@@ -52,9 +52,9 @@ assert ob_space is not None
 teacher = Teacher(env, 1, Preprocessor(False))
 
 lr_actor = 4e-4
-lr_critic = 4e-4
+lr_critic = 4e-3
 
-config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=32, gamma=0.7, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
+config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=128, gamma=0.9, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=4)
 agent = Agent(history_length, action_size=1, config=config, actor_layers=[8, 128, 64], critic_layers=[8,128,64])
 
 # Test the model
