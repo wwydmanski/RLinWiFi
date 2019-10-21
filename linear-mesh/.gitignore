@@ -4,3 +4,4 @@ models/
 .vs/
 .vscode
 workspace.bat
+graphs/

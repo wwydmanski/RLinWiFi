@@ -29,7 +29,7 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "convergence",
+    "scenario": "basic",
     "nWifi": 30,
 }
 
