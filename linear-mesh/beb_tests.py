@@ -12,26 +12,31 @@ from agents.teacher import Teacher, EnvWrapper
 
 class Agent:
     TYPE = "continuous"
-    NAME = "STATIC"
+    # NAME = "STATIC"
+    NAME = "BEB"
     def __init__(self, action_space):
         self.action_space = action_space
         self.actor_loss = 0
         self.critic_loss = 0
-        
-    def act(self, *args):
+        self.lookup = {5: 32, 10:64, 15:128, 25:256}
+        self.current_cw = 32
+
+    def act(self, stations_count, *args):
         # return np.random.sample(self.action_space)
-        res = np.array([[1]])
+        if stations_count in self.lookup.keys():
+            self.current_cw = self.lookup[stations_count]
+
+        res = np.array([[np.log2(self.current_cw)-4]])
         return res
-    
+
     def step(self, *args):
         pass
-    
+
     def reset(self):
         pass
 
     def get_loss(self):
         return {"loss": 0}
-        
     def __getattribute__(self, attr):
         try:
             return object.__getattribute__(self, attr)
@@ -78,7 +83,7 @@ tags = [f"{Agent.NAME}",
         f"Station count: {sim_args['nWifi']}",
         *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
 
-#%%        
+#%%
 teacher = Teacher(env, 1, Preprocessor(False))
 agent = Agent(env.action_space)
 logger = teacher.eval(agent, simTime, stepTime, history_length, tags)
