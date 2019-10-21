@@ -20,7 +20,7 @@ class Agent:
         
     def act(self, *args):
         # return np.random.sample(self.action_space)
-        res = np.array([[0]])
+        res = np.array([[1]])
         return res
     
     def step(self, *args):
@@ -30,7 +30,7 @@ class Agent:
         pass
 
     def get_loss(self):
-        return np.array([0])
+        return {"loss": 0}
         
     def __getattribute__(self, attr):
         try:
@@ -43,9 +43,9 @@ class Agent:
 #%%
 scenario = "convergence"
 
-simTime = 60 # seconds
+simTime = 30 # seconds
 stepTime = 0.01  # seconds
-history_length = 300
+history_length = 3
 
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
@@ -56,7 +56,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "basic",
-    "nWifi": 30
+    "nWifi": 15
 }
 print("Steps per episode:", steps_per_ep)
 
@@ -81,4 +81,4 @@ tags = [f"{Agent.NAME}",
 #%%        
 teacher = Teacher(env, 1, Preprocessor(False))
 agent = Agent(env.action_space)
-logger = teacher.eval(agent, simTime, stepTime, 300, tags)
+logger = teacher.eval(agent, simTime, stepTime, history_length, tags)
