@@ -28,7 +28,10 @@ plt.ylabel("Aggregate network throughput [Mb/s]")
 
 # plt.title("CONVERGENCE scenario comparison")
 plt.legend(loc=3)
+plt.savefig('basic.pdf', bbox_inches='tight');
 plt.show()
+
+
 
 ## Barplots
 # BEB = np.array(BEB)
