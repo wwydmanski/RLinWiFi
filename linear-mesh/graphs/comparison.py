@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-# plt.style.use("seaborn")
+#plt.style.use("seaborn-white")
+plt.style.use("default")
+
 
 ## BASIC scenario
 BEB = [39.15, 34.47, 30.64, 27.1]
@@ -16,12 +18,14 @@ STATIC = [40.79, 39.9, 39.55, 38.95]
 
 RANGE = [5, 15, 30, 50]
 
-plt.plot(RANGE, BEB, '.-', label="BEB")
-plt.plot(RANGE, DDPG, '.-', label="DDPG")
-plt.plot(RANGE, STATIC, '.-', label="STATIC")
+plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", color="#f7b051", marker="^",markersize=8)
+plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", color="#e53f26", marker="v",markersize=8)
+plt.plot(RANGE, STATIC, '.-', label="Static (CW=$2^x$)", color="#8a1c1b",markersize=12)
+plt.plot(RANGE, BEB, '.-', label="Standard 802.11", color="#000000", marker="s", markersize=6)
+
 plt.xlabel("Number of stations")
-plt.ylabel("Speed [Mb/s]")
-plt.plot(RANGE[:len(DQN)], DQN, '.-', label="DQN")
+plt.ylabel("Aggregate network throughput [Mb/s]")
+
 # plt.title("CONVERGENCE scenario comparison")
 plt.legend(loc=3)
 plt.show()
