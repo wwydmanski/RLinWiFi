@@ -1,5 +1,5 @@
 # RLinWiFi
-Code for "Contention Window Optimization in Wi-Fi Networks with Deep Reinforcement Learning" publication
+Code for upcoming research publication.
 
 ## Prerequisites
 In order to run this code, you must have a working [ns3-gym](https://github.com/tkn-tub/ns3-gym) environment.
