@@ -1,6 +1,12 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 import numpy as np
+
+import cycler
+n = 3 #number of lines
+color = plt.cm.Blues(np.linspace(0.3, 1.1,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
+mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 
 def svg_to_data_conv(svg, a, b, thresh=0):
     bs = BeautifulSoup(f)
@@ -54,13 +60,25 @@ with open("CT_dqn.svg") as f:
     x_dqn, dqn = svg_to_data_conv(f, a, b)
 
 ##### BEB vs DQN throughput
-plt.plot(x_beb, beb, label="Standard 802.11", color="#000000")
-plt.plot(x_ddpg, ddpg, label="CCOD w/ DDPG", color="#f7b051")
-plt.plot(x_dqn, dqn, label="CCOD w/ DQN", color="#e53f26")
+plt.figure(figsize=(6.4, 4.8))
+#plt.plot(x_beb, beb, label="Standard 802.11", color="#000000")
+#plt.plot(x_ddpg, ddpg, label="CCOD w/ DDPG", color="#f7b051")
+#plt.plot(x_dqn, dqn, label="CCOD w/ DQN", color="#e53f26")
+plt.plot(x_beb, beb, label="Standard 802.11")
+plt.plot(x_dqn, dqn, label="CCOD w/ DQN")
+plt.plot(x_ddpg, ddpg, label="CCOD w/ DDPG")
+
 plt.ylabel("Throughput [Mb/s]")
 plt.xlabel("Simulation time [s]")
 plt.xticks(np.arange(7)*7/6, np.arange(7)*10)
 plt.xlim([0, 7])
-plt.legend()
-plt.show()
+plt.ylim([26, 42])
+plt.yticks(range(26,44,2))
 
+leg=plt.legend()
+# set the linewidth of each legend object
+for legobj in leg.legendHandles:
+    legobj.set_linewidth(3.0)
+    
+plt.savefig('../reaction.pdf', bbox_inches='tight')
+plt.show()

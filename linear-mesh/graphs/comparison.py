@@ -1,7 +1,14 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 #plt.style.use("seaborn-white")
 plt.style.use("default")
+
+
+import cycler
+n = 4 #number of lines
+color = plt.cm.Blues(np.linspace(0.3, 1,n)) #gnuplot - colormap name, 0 and 1 determine the boundaries of the color
+mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 
 def plot(scenario):
     if scenario == 'static':
@@ -17,13 +24,21 @@ def plot(scenario):
     
     RANGE = [5, 15, 30, 50]
     
-    plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", color="#f7b051", marker="^",markersize=8)
-    plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", color="#e53f26", marker="v",markersize=8)
-    plt.plot(RANGE, STATIC, '.-', label="Look-up table (CW=$2^x$)", color="#8a1c1b",markersize=12)
-    plt.plot(RANGE, BEB, '.-', label="Standard 802.11", color="#000000", marker="s", markersize=6)
+    plt.figure(figsize=(6.4, 4.8))
+    
+    
+#    plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=8)
+#    plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=8)
+#    plt.plot(RANGE, STATIC, '.-', label="Look-up table (CW=$2^x$)",markersize=12)
+#    plt.plot(RANGE, BEB, '.-', label="Standard 802.11", marker="s", markersize=6)
+    plt.plot(RANGE, BEB, '.-', label="Standard 802.11", marker="s", markersize=6)
+    plt.plot(RANGE, STATIC, '.-', label="Look-up table (CW=$2^x$)",markersize=10)
+    plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
+    plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
     
     plt.xlabel("Number of stations")
     plt.ylabel("Aggregate network throughput [Mb/s]")
+    plt.ylim([26, 42])
     
     # plt.title("CONVERGENCE scenario comparison")
     plt.legend(loc=3)

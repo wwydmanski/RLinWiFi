@@ -1,6 +1,12 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 import numpy as np
+
+import cycler
+n = 2 #number of lines
+color = plt.cm.Blues(np.linspace(0.4, 0.7,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
+mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 
 def svg_to_data_conv(svg, a, b, thresh=0):
     bs = BeautifulSoup(f)
@@ -52,21 +58,35 @@ with open("CW_dqn.svg") as f:
 
 x_station, stations = generate_station_data(x_dqn, 50)
 
-fig, ax1 = plt.subplots()
+#plt.figure(figsize=(6.4, 4.8))
+fig, ax1 = plt.subplots(figsize=(6.4, 4.8))
 plt.xlabel("Simulation time [s]")
-
 ax1.set_ylabel('CW')
+#plt.plot(x_dqn, dqn, label="CCOD w/ DQN", color="#d38fc5")
+#ax1.plot(x_data, data, label="CCOD w/ DDPG", color="#2b6f39")
 plt.plot(x_dqn, dqn, label="CCOD w/ DQN")
-ax1.plot(x_data, data, label="CCOD w/ DDPG", color="#f7b051")
+ax1.plot(x_data, data, label="CCOD w/ DDPG")
+
 ax1.tick_params(axis='y')
-plt.legend()
+leg=plt.legend(title='CW')
+# set the linewidth of each legend object
+for legobj in leg.legendHandles:
+    legobj.set_linewidth(2.0)
 
 ax2 = ax1.twinx()
-color = 'tab:red'
-ax2.set_ylabel('Transmitting stations', color=color)
-ax2.plot(x_station, stations, color=color)
+color = '#000000'
+ax2.set_ylabel('Number of stations', color=color)
+ax2.plot(x_station, stations, color=color, ls='-', label="Number of stations")
 ax2.tick_params(axis='y', labelcolor=color)
+leg=ax2.legend(loc='lower right')
+# set the linewidth of each legend object
+for legobj in leg.legendHandles:
+    legobj.set_linewidth(2.0)
 
 plt.xticks(np.arange(7)*7/6, np.arange(7)*10)
 plt.xlim([0, 7])
+fig = plt.gcf()
+fig.set_size_inches(6.4, 4.8)
+
+plt.savefig('../cw_choice.pdf', bbox_inches='tight')
 plt.show()
