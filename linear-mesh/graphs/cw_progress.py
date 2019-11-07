@@ -41,13 +41,14 @@ def get_lim(steps, low, high):
 #plt.plot([i for i in range(len(ddpg_vals))], ddpg_vals, '.-', label="CCOD w/ DDPG", color="#f7b051", marker="^",markersize=8)
 #plt.plot([i for i in range(len(dqn_vals))], dqn_vals, '.-', label="CCOD w/ DQN", color="#e53f26", marker="v",markersize=8)
 plt.figure(figsize=(6.4, 4.8))
-plt.plot([i for i in range(len(dqn_vals))], dqn_vals, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
-plt.plot([i for i in range(len(ddpg_vals))], ddpg_vals, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
+plt.plot([i for i in range(1,len(dqn_vals)+1)], dqn_vals, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
+plt.plot([i for i in range(1,len(ddpg_vals)+1)], ddpg_vals, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
           
 plt.xlabel("Rounds")
 plt.ylabel("Mean CW")
 plt.legend()
+plt.xticks(np.arange(1, 16, 1.0))
 # plt.ylim([16, 1024])
 plt.savefig('cw_vs_rounds.pdf', bbox_inches='tight')
 plt.show()
