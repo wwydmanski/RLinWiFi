@@ -4,6 +4,7 @@ import numpy as np
 #plt.style.use("seaborn-white")
 plt.style.use("default")
 
+plt.rcParams.update({'font.size': 14})
 
 import cycler
 n = 4 #number of lines
@@ -32,7 +33,7 @@ def plot(scenario):
 #    plt.plot(RANGE, STATIC, '.-', label="Look-up table (CW=$2^x$)",markersize=12)
 #    plt.plot(RANGE, BEB, '.-', label="Standard 802.11", marker="s", markersize=6)
     plt.plot(RANGE, BEB, '.-', label="Standard 802.11", marker="s", markersize=6)
-    plt.plot(RANGE, STATIC, '.-', label="Look-up table (CW=$2^x$)",markersize=10)
+    plt.plot(RANGE, STATIC, '.-', label="Look-up table",markersize=10)
     plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
     plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
     

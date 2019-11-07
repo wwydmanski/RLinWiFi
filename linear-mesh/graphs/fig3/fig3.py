@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 from bs4 import BeautifulSoup
 import numpy as np
 
+plt.rcParams.update({'font.size': 14})
+
 import cycler
 n = 3 #number of lines
 color = plt.cm.Blues(np.linspace(0.3, 1.1,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
@@ -68,7 +70,7 @@ plt.plot(x_beb, beb, label="Standard 802.11")
 plt.plot(x_dqn, dqn, label="CCOD w/ DQN")
 plt.plot(x_ddpg, ddpg, label="CCOD w/ DDPG")
 
-plt.ylabel("Throughput [Mb/s]")
+plt.ylabel("Network throughput [Mb/s]")
 plt.xlabel("Simulation time [s]")
 plt.xticks(np.arange(7)*7/6, np.arange(7)*10)
 plt.xlim([0, 7])
