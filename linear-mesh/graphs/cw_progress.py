@@ -45,7 +45,7 @@ plt.plot([i for i in range(1,len(dqn_vals)+1)], dqn_vals, '.-', label="CCOD w/ D
 plt.plot([i for i in range(1,len(ddpg_vals)+1)], ddpg_vals, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
           
-plt.xlabel("Rounds")
+plt.xlabel("Round")
 plt.ylabel("Mean CW")
 plt.legend()
 plt.xticks(np.arange(1, 16, 1.0))
