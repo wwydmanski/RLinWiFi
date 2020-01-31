@@ -214,8 +214,8 @@ class Teacher:
                     # reward = 1-np.reshape(np.mean(next_obs), reward.shape)
                     next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
 
-                    if self.last_actions is not None and step>(history_length/obs_dim):
-                        agent.step(obs, self.actions, reward, next_obs, done, 1)
+                    if self.last_actions is not None and step>(history_length/obs_dim) and i<EPISODE_COUNT-1:
+                        agent.step(obs, self.actions, reward, next_obs, done, 2)
 
                     cumulative_reward += np.mean(reward)
 

@@ -347,7 +347,8 @@ void set_nodes(int channelWidth, int rng, uint32_t simSeed, NodeContainer wifiSt
     stack.Install(wifiStaNode);
 
     //Random
-    RngSeedManager::SetSeed(simSeed);
+    if(simSeed!=-1)
+        RngSeedManager::SetSeed(simSeed);
     RngSeedManager::SetRun(rng);
 
     Ipv4AddressHelper address;
@@ -432,7 +433,7 @@ int main(int argc, char *argv[])
     int warmup = 1;
 
     uint32_t openGymPort = 5555;
-    uint32_t simSeed = 42;
+    uint32_t simSeed = -1;
 
     signal(SIGTERM, signalHandler);
 
