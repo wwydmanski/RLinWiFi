@@ -37,7 +37,6 @@ class Agent:
 
     def get_loss(self):
         return {"loss": 0}
-
     def __getattribute__(self, attr):
         try:
             return object.__getattribute__(self, attr)
@@ -49,9 +48,9 @@ class Agent:
 #%%
 scenario = "convergence"
 
-simTime = 60 # seconds
+simTime = 30 # seconds
 stepTime = 0.01  # seconds
-history_length = 300
+history_length = 3
 
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
@@ -87,4 +86,4 @@ tags = [f"{Agent.NAME}",
 #%%
 teacher = Teacher(env, 1, Preprocessor(False))
 agent = Agent(env.action_space)
-logger = teacher.eval(agent, simTime, stepTime, 300, tags)
+logger = teacher.eval(agent, simTime, stepTime, history_length, tags)
