@@ -19,7 +19,7 @@ scenario = "convergence"
 
 simTime = 60 # seconds
 stepTime = 0.01  # seconds
-history_length = 500
+history_length = 200
 
 EPISODE_COUNT = 15
 steps_per_ep = int(simTime/stepTime)
@@ -30,7 +30,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "convergence",
-    "nWifi": 15,
+    "nWifi": 50,
 }
 
 print("Steps per episode:", steps_per_ep)
