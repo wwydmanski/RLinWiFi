@@ -43,14 +43,15 @@ class Actor(nn.Module):
         self.batch_size = batch_size
         self.state_size = int(state_size/3)
         # self.state_size = np.ceil(state_size/(state_size//4)).astype(int)
-        self.seed = torch.manual_seed(seed)
+        if seed!=-1:
+            self.seed = torch.manual_seed(seed)
         self.norm = torch.nn.BatchNorm1d(np.ceil(state_size/(state_size//4)).astype(int))
         self.lstm1 = nn.LSTM(2, fc_units)
         self.norm1 = torch.nn.BatchNorm1d(fc_units)
         self.fc2 = nn.Linear(fc_units, fc2_units)
         self.norm2 = torch.nn.BatchNorm1d(fc2_units)
         # self.fc3 = nn.Linear(fc2_units, action_size)
-        self.fc3 = nn.Linear(fc2_units, fc3_units)
+        self.fc3 = nn.Linear(fc_units, fc3_units)
         self.dropout = torch.nn.Dropout(0.5)
         self.fc4 = nn.Linear(fc3_units, action_size)
         self.reset_parameters()
@@ -74,8 +75,8 @@ class Actor(nn.Module):
         x, _ = self.lstm1(state, (h0, c0))
         x = F.relu(x[-1])
         # x = self.norm1(x)
-        x = self.fc2(x)
-        x = F.relu(x)
+        # x = self.fc2(x)
+        # x = F.relu(x)
         # x = self.norm2(x)
         # return torch.tanh(self.fc3(x))
         x = F.relu(self.fc3(x))
@@ -107,7 +108,7 @@ class Critic(nn.Module):
         self.norm1 = torch.nn.BatchNorm1d(fcs1_units)
         self.fc2 = nn.Linear(fcs1_units+action_size, fc2_units)
         self.fc3 = nn.Linear(fc2_units, fc3_units)
-        self.fc4 = nn.Linear(fc3_units, 1)
+        self.fc4 = nn.Linear(fc2_units, 1)
 
         self.reset_parameters()
 
@@ -128,6 +129,6 @@ class Critic(nn.Module):
         x = F.relu(xs[-1])
         x = torch.cat((x, action), dim=1)
         x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        # x = F.relu(self.fc3(x))
 
         return self.fc4(x)

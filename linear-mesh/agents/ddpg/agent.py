@@ -141,7 +141,8 @@ class Agent:
                     self.notifications = -1
 
                 experiences = self.memory.sample()
-                self.learn(experiences, self.config.GAMMA)
+                for i in range(training_steps):
+                   self.learn(experiences, self.config.GAMMA)
 
     def learn(self, experiences, gamma):
         """Update value parameters using given batch of experience tuples
@@ -290,7 +291,8 @@ class ReplayBuffer:
         self.batch_size = batch_size
         self.experience = namedtuple("Experience", field_names=[
                                      "state", "action", "reward", "next_state", "done"])
-        self.seed = random.seed(seed)
+        if seed!=-1:
+            self.seed = random.seed(seed)
 
     def add(self, state, action, reward, next_state, done):
         """Add a new experience to memory."""
