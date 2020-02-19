@@ -30,7 +30,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "basic",
-    "nWifi": 30,
+    "nWifi": 15,
 }
 
 print("Steps per episode:", steps_per_ep)
@@ -59,7 +59,7 @@ teacher = Teacher(env, 1, Preprocessor(False))
 
 # config = Config(buffer_size=4*steps_per_ep*threads_no, batch_size=256, gamma=0.8, tau=1e-3, lr_actor=lr_actor, lr_critic=lr_critic, update_every=1)
 lr = 4e-4
-config = Config(buffer_size=3*steps_per_ep*threads_no, batch_size=32, gamma=0.8, tau=1e-3, lr=lr, update_every=1)
+config = Config(buffer_size=3*steps_per_ep*threads_no, batch_size=32, gamma=0.7, tau=1e-3, lr=lr, update_every=1)
 agent = Agent(QNetworkTf, history_length, action_size=7, config=config)
 agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-2)
 # agent = Agent(history_length, action_size=1, config=config, actor_layers=[8, 128, 64], critic_layers=[8,128,64])
@@ -67,11 +67,10 @@ agent.set_epsilon(0.9, 0.001, EPISODE_COUNT-2)
 # Test the model
 hyperparams = {**config.__dict__, **sim_args}
 tags = ["Rew: normalized speed",
+        "Final",
         f"{Agent.NAME}",
         sim_args['scenario'],
         f"LR: {lr}",
-        # f"Actor: {lr_actor}",
-        # f"Critic: {lr_critic}",
         f"Instances: {threads_no}",
         f"Station count: {sim_args['nWifi']}",
         *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
@@ -91,3 +90,6 @@ logger = teacher.train(agent, EPISODE_COUNT,
 #                         tags=tags,
 #                         parameters=hyperparams)
 # agent.save()
+
+
+# %%

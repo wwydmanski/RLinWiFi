@@ -308,7 +308,7 @@ void set_phy(int nWifi, int guardInterval, NodeContainer &wifiStaNode, NodeConta
     phy.Set("GuardInterval", TimeValue(NanoSeconds(guardInterval)));
 }
 
-void set_nodes(int channelWidth, int rng, uint32_t simSeed, NodeContainer wifiStaNode, NodeContainer wifiApNode, YansWifiPhyHelper phy, WifiMacHelper mac, WifiHelper wifi, NetDeviceContainer &apDevice)
+void set_nodes(int channelWidth, int rng, int32_t simSeed, NodeContainer wifiStaNode, NodeContainer wifiApNode, YansWifiPhyHelper phy, WifiMacHelper mac, WifiHelper wifi, NetDeviceContainer &apDevice)
 {
     Ssid ssid = Ssid("ns3-80211ax");
 
@@ -433,7 +433,7 @@ int main(int argc, char *argv[])
     int warmup = 1;
 
     uint32_t openGymPort = 5555;
-    uint32_t simSeed = -1;
+    int32_t simSeed = -1;
 
     signal(SIGTERM, signalHandler);
 
