@@ -12,8 +12,8 @@ from agents.teacher import Teacher, EnvWrapper
 
 class Agent:
     TYPE = "continuous"
-    # NAME = "STATIC"
-    NAME = "BEB"
+    NAME = "STATIC"
+    # NAME = "BEB"
     def __init__(self, action_space):
         self.action_space = action_space
         self.actor_loss = 0
@@ -22,7 +22,8 @@ class Agent:
         self.current_cw = 32
 
     def act(self, stations_count, *args):
-        # return np.random.sample(self.action_space)
+        # return np.random.sample(self.action_space)\
+        stations_count = int(stations_count)
         if stations_count in self.lookup.keys():
             self.current_cw = self.lookup[stations_count]
 
@@ -78,7 +79,8 @@ print("Action space shape:", ac_space)
 
 assert ob_space is not None
 
-tags = [f"{Agent.NAME}",
+tags = [f"{Agent.NAME}", 
+        "Final",
         sim_args['scenario'],
         f"Station count: {sim_args['nWifi']}",
         *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]

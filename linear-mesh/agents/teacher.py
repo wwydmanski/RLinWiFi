@@ -11,6 +11,7 @@ import time
 
 class Logger:
     def __init__(self, send_logs, tags, parameters, experiment=None):
+        self.stations = 5
         self.send_logs = send_logs
         if self.send_logs:
             if experiment is None:
@@ -53,7 +54,7 @@ class Logger:
         # CW = np.mean([float(i.split("|")[1]) for i in info])
         CW = info[1]
         # stations = np.mean([float(i.split("|")[2]) for i in info])
-        stations = info[2]
+        self.stations = info[2]
         fairness = info[3]
 
         if self.send_logs:
@@ -62,7 +63,7 @@ class Logger:
             self.experiment.log_metric("Megabytes sent", self.sent_mb, step=step)
             self.experiment.log_metric("Round megabytes sent", round_mb, step=step)
             self.experiment.log_metric("Chosen CW", CW, step=step)
-            self.experiment.log_metric("Station count", stations, step=step)
+            self.experiment.log_metric("Station count", self.stations, step=step)
             self.experiment.log_metric("Current throughput", self.current_speed, step=step)
             self.experiment.log_metric("Fairness index", fairness, step=step)
 
@@ -144,8 +145,8 @@ class Teacher:
         with tqdm.trange(steps_per_ep) as t:
             for step in t:
                 self.debug = obs
-
-                self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
+                self.actions = agent.act(np.array(logger.stations, dtype=np.float32), add_noise)
+                # self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                 next_obs, reward, done, info = self.env.step(self.actions)
 
                 next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))
