@@ -49,9 +49,9 @@ class Agent:
 #%%
 scenario = "convergence"
 
-simTime = 30 # seconds
+simTime = 60 # seconds
 stepTime = 0.01  # seconds
-history_length = 3
+history_length = 300
 
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
