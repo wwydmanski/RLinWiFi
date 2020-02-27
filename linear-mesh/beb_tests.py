@@ -19,6 +19,15 @@ class Agent:
         self.actor_loss = 0
         self.critic_loss = 0
         self.lookup = {5: 32, 10:64, 15:128, 25:256}
+        self.lookup = {}
+        for i in range(5, 10):
+            self.lookup[i] = 32
+        for i in range(10, 15):
+            self.lookup[i] = 64
+        for i in range(15, 25):
+            self.lookup[i] = 128
+        for i in range(25, 51):
+            self.lookup[i] = 256
         self.current_cw = 32
 
     def act(self, stations_count, *args):
