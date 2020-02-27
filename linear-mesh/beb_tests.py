@@ -65,7 +65,7 @@ history_length = 300
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
 
-for scenario in ["basic", "convergence"]:
+for scenario in ["basic"]:
     nwifi = [5, 15, 30, 50]
     if scenario=="convergence":
         nwifi[0] = 6
