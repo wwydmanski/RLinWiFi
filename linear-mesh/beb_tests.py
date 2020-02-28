@@ -19,6 +19,15 @@ class Agent:
         self.actor_loss = 0
         self.critic_loss = 0
         self.lookup = {5: 32, 10:64, 15:128, 25:256}
+        self.lookup = {}
+        for i in range(5, 10):
+            self.lookup[i] = 32
+        for i in range(10, 15):
+            self.lookup[i] = 64
+        for i in range(15, 25):
+            self.lookup[i] = 128
+        for i in range(25, 51):
+            self.lookup[i] = 256
         self.current_cw = 32
 
     def act(self, stations_count, *args):
@@ -47,7 +56,7 @@ class Agent:
             return foo
 
 #%%
-scenario = "convergence"
+# scenario = "convergence"
 
 simTime = 60 # seconds
 stepTime = 0.01  # seconds
@@ -56,36 +65,42 @@ history_length = 300
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
 
-sim_args = {
-    "simTime": simTime,
-    "envStepTime": stepTime,
-    "historyLength": history_length,
-    "agentType": Agent.TYPE,
-    "scenario": "basic",
-    "nWifi": 15
-}
-print("Steps per episode:", steps_per_ep)
+for scenario in ["basic"]:
+    nwifi = [5, 15, 30, 50]
+    if scenario=="convergence":
+        nwifi[0] = 6
+    
+    for nw in nwifi:
+        sim_args = {
+            "simTime": simTime,
+            "envStepTime": stepTime,
+            "historyLength": history_length,
+            "agentType": Agent.TYPE,
+            "scenario": scenario,
+            "nWifi": nw
+        }
+        print("Steps per episode:", steps_per_ep)
 
-threads_no = 1
-env = EnvWrapper(threads_no, **sim_args)
+        threads_no = 1
+        env = EnvWrapper(threads_no, **sim_args)
 
-#%%
-env.reset()
-ob_space = env.observation_space
-ac_space = env.action_space
+        #%%
+        env.reset()
+        ob_space = env.observation_space
+        ac_space = env.action_space
 
-print("Observation space shape:", ob_space)
-print("Action space shape:", ac_space)
+        print("Observation space shape:", ob_space)
+        print("Action space shape:", ac_space)
 
-assert ob_space is not None
+        assert ob_space is not None
 
-tags = [f"{Agent.NAME}", 
-        "Final",
-        sim_args['scenario'],
-        f"Station count: {sim_args['nWifi']}",
-        *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
+        tags = [f"{Agent.NAME}", 
+                "Final",
+                sim_args['scenario'],
+                f"Station count: {sim_args['nWifi']}",
+                *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
 
-#%%
-teacher = Teacher(env, 1, Preprocessor(False))
-agent = Agent(env.action_space)
-logger = teacher.eval(agent, simTime, stepTime, history_length, tags)
+        #%%
+        teacher = Teacher(env, 1, Preprocessor(False))
+        agent = Agent(env.action_space)
+        logger = teacher.eval(agent, simTime, stepTime, history_length, tags)
