@@ -1,88 +1,63 @@
+#%%
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-
+from comet_ml.api import API
+import scipy.stats
 plt.rcParams.update({'font.size': 14})
 
 import cycler
 n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.5, 0.8,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
-
-from comet_ml.papi import API
+#%%
 comet_api = API("hLbeXrPuj2u7JD6QGop7Yrtek")
-res = comet_api.get_metrics_for_chart(["596303569d3146bb902aeba3fd12a1f5"], ["Chosen CW"])
 
-res = res["596303569d3146bb902aeba3fd12a1f5"]['metrics'][0]
-steps = np.asarray(res['steps'])
-CW = np.asarray(res['values'])
+def extract_values(experiment_key):
+    res = comet_api.get(f"wwydmanski/rl-in-wifi/{experiment_key}")
+    res = res.get_metrics("Chosen CW")
+    values = np.array([float(i['metricValue']) for i in res], dtype=np.float)
+    steps = np.array([i['step'] for i in res], dtype=np.float)
+    
+    round_ends = [0]
+    round_ends.extend([np.where(steps<i*6300)[0][-1] for i in range(1, 16)])
+    means = []
+    for i in range(len(round_ends)):
+        means.append(np.mean(values[round_ends[i-1]:round_ends[i]]))
+    return means[1:]
+#%%
 
-# DQN
-dqn_vals = [247, 151, 540, 587, 231, 237, 244, 218, 232, 253, 253, 234, 244, 243, 242]
-# DDPG (measured 1-4)
-ddpg_vals = [496, 321, 263, 222, 173, 275, 171, 177, 170, 269, 251, 226, 210, 208, 209]
+def get_metrics(experiments):
+    res = np.array([extract_values(i) for i in experiments])
+    for exp in res:
+        for i in range(len(exp)):
+            if np.isnan(exp[i]):
+                exp[i] = (exp[i-1]+exp[i+1])/2
+    mean = np.mean(res, axis=0)
+    std = np.std(res, axis=0)
+    alpha = 0.05
+    n = len(experiments)
+    yerr = std / np.sqrt(n) * scipy.stats.t.ppf(1-alpha/2, n - 1)
+    upper = yerr
+    lower = yerr
+    for i in range(len(yerr)):
+        if mean[i]-lower[i]<0:
+            lower[i] = mean[i]
+    intervals = (lower, upper)
+    return mean, intervals
 
-def get_lim(steps, low, high):
-    low_bound = np.where(steps>low)[0][0]
-    high_bound = np.where(steps<high)[0][-1]
-    return low_bound, high_bound
-
-# for i in range(0, 15):
-#     low, high = get_lim(steps, 6000*i, 6000*(i+1))
-#     x_beb = steps[low:high]
-#     beb = CW[low:high]
-
-#     res = 0
-#     for j in range(len(beb)-1):
-#         res += beb[j+1]*(x_beb[j+1]-x_beb[j])
-#     res = res/(x_beb[-1]-x_beb[0])
-#     print(f"{i+1} ({steps[low]}-{steps[high]}): {res}")
-
-#plt.plot([i for i in range(len(ddpg_vals))], ddpg_vals, '.-', label="CCOD w/ DDPG", color="#f7b051", marker="^",markersize=8)
-#plt.plot([i for i in range(len(dqn_vals))], dqn_vals, '.-', label="CCOD w/ DQN", color="#e53f26", marker="v",markersize=8)
 plt.figure(figsize=(6.4, 4.8))
-plt.plot([i for i in range(1,len(dqn_vals)+1)], dqn_vals, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
-plt.plot([i for i in range(1,len(ddpg_vals)+1)], ddpg_vals, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
-          
+means, yerr = get_metrics(["918819ef9ae14477b2cf0866e35af8f8", "ec240e737d3e472b819c51d49a4d97bf"])
+plt.errorbar(np.arange(len(res))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DQN", marker="v", markersize=6, capsize=5)
+
+means, yerr = get_metrics(["1043a164b186427f9d17b7b45eeb216c", "4f06b6a983764fe2b30cb5f94241d084", "55ee5bb7ca824c96a8336c8192e6fcea", "f4c1d0bfb2f94657bf3128a7c67c495d"])
+plt.errorbar(np.arange(len(res))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="v", markersize=6, capsize=5)
+
 plt.xlabel("Round")
 plt.ylabel("Mean CW")
 plt.legend()
 plt.xticks(np.arange(1, 16, 1.0))
-# plt.ylim([16, 1024])
 plt.savefig('cw_vs_rounds.pdf', bbox_inches='tight')
+# plt.ylim([0, 600])
 plt.show()
-# def svg_to_data_conv(svg, a, b, thresh=0):
-#     bs = BeautifulSoup(f)
-#     vals = bs.find_all("path")[-4]["d"].split("L")[1:]
-#     data = []
-#     unique = []
-#     xs = []
-#     for val in vals:
-#         x = float(val.split(",")[0])/100
-#         y_val = float(val.split(",")[1])
-#         if x>thresh:
-#             if y_val not in unique:
-#                 unique.append(y_val)
-#             xs.append(x)
-#             data.append(a*y_val + b)
-#     print(np.max(unique), np.min(unique))
-#     return xs, data
-
-# with open("ending_cw_dqn/Chosen CW(9).svg") as f:
-#     a = -2.382978
-#     b = 1080
-#     x_beb, beb = svg_to_data_conv(f, a, b, -0.4)
-
-# stop = 20
-# beb = np.asarray(beb)
-# plt.plot(x_beb[:stop], beb[:stop])
-# # plt.ylim([0, 1024])
-# plt.show()
-# # print(np.mean(beb[:40]))
-# res = 0
-# for i in range(stop):
-#     print(beb[i+1], x_beb[i+1], x_beb[i])
-#     res += beb[i+1]*(x_beb[i+1]-x_beb[i])
-
-# print(res/np.max(x_beb[:stop+1]))

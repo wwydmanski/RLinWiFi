@@ -8,6 +8,8 @@ plt.style.use("default")
 plt.rcParams.update({'font.size': 14})
 
 import cycler
+COEFF = 1.048576
+
 n = 4 #number of lines
 color = plt.cm.Blues(np.linspace(0.3, 1,n)) #gnuplot - colormap name, 0 and 1 determine the boundaries of the color
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
@@ -32,14 +34,14 @@ def plot(scenario):
 
     df = pd.read_csv("final.csv")
     df = df[df['type']==scenario]
-    DDPG = df[df['algorithm']=='ddpg'].groupby('count').mean()
-    DQN = df[df['algorithm']=='dqn'].groupby('count').mean()
-    STATIC = df[df['algorithm']=='static'].groupby('count').mean()
+    DDPG = df[df['algorithm']=='ddpg'].groupby('count').mean()*COEFF
+    DQN = df[df['algorithm']=='dqn'].groupby('count').mean()*COEFF
+    STATIC = df[df['algorithm']=='static'].groupby('count').mean()*COEFF
 
-    # DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
-    # DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
-    DDPG_yerr = df[df['algorithm']=='ddpg'].groupby('count').std()*3
-    DQN_yerr = df[df['algorithm']=='dqn'].groupby('count').std()*3
+    DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
+    DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
+    # DDPG_yerr = df[df['algorithm']=='ddpg'].groupby('count').std()*3
+    # DQN_yerr = df[df['algorithm']=='dqn'].groupby('count').std()*3
     
     plt.figure(figsize=(6.4, 4.8))
 

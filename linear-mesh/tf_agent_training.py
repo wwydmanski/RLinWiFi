@@ -29,8 +29,8 @@ sim_args = {
     "envStepTime": stepTime,
     "historyLength": history_length,
     "agentType": Agent.TYPE,
-    "scenario": "basic",
-    "nWifi": 5,
+    "scenario": "convergence",
+    "nWifi": 30,
 }
 
 print("Steps per episode:", steps_per_ep)

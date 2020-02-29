@@ -1,3 +1,5 @@
-model_checkpoint_path: "2020-02-28_11-36.ckpt"
-all_model_checkpoint_paths: "2020-02-28_11-19.ckpt"
-all_model_checkpoint_paths: "2020-02-28_11-36.ckpt"
+model_checkpoint_path: "2020-02-29_14-13.ckpt"
+all_model_checkpoint_paths: "2020-02-29_11-37.ckpt"
+all_model_checkpoint_paths: "2020-02-29_12-29.ckpt"
+all_model_checkpoint_paths: "2020-02-29_13-20.ckpt"
+all_model_checkpoint_paths: "2020-02-29_14-13.ckpt"
