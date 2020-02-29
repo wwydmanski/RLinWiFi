@@ -49,10 +49,10 @@ def get_metrics(experiments):
 plt.figure(figsize=(6.4, 4.8))
 
 means, yerr = get_metrics(["918819ef9ae14477b2cf0866e35af8f8", "ec240e737d3e472b819c51d49a4d97bf"])
-plt.errorbar(np.arange(len(means))+1, means, yerr, fmt='.-', label="CCOD w/ DQN", marker="v", markersize=6, capsize=5)
+plt.errorbar(np.arange(len(means))+1, means, yerr, fmt='.-', label="CCOD w/ DQN", marker="v", markersize=6, capsize=2)
 
 means, yerr = get_metrics(["1043a164b186427f9d17b7b45eeb216c", "4f06b6a983764fe2b30cb5f94241d084", "55ee5bb7ca824c96a8336c8192e6fcea", "f4c1d0bfb2f94657bf3128a7c67c495d"])
-plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="v", markersize=6, capsize=5)
+plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="v", markersize=6, capsize=2)
 
 plt.xlabel("Round")
 plt.ylabel("Mean CW")
