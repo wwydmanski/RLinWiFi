@@ -6,6 +6,7 @@ import scipy.stats as st
 plt.style.use("default")
 
 plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'errorbar.capsize': 2})
 
 import cycler
 COEFF = 1.048576
@@ -40,19 +41,19 @@ def plot(scenario):
 
     DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
     DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
-    zero_err = pd.DataFrame(data={"speed": [0, 0, 0, 0]})
+
     plt.figure(figsize=(6.4, 4.8))
 
     plt.errorbar(RANGE, BEB, fmt='.-', label="Standard 802.11", marker="s", markersize=6, yerr=[0, 0, 0, 0])
     plt.errorbar(RANGE, STATIC.values, fmt='.-', label="Look-up table", markersize=10, yerr=[0, 0, 0, 0])
     DQN.plot(fmt='.-', label="CCOD w/ DQN", marker="v",markersize=6, yerr=DQN_yerr, ax=plt.gca())
     DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
-    print(STATIC)
+
     # plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
     # plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
     plt.xlabel("Number of stations")
-    plt.ylabel("Aggregate network throughput [Mb/s]")
+    plt.ylabel("Network throughput [Mb/s]")
     plt.ylim([26, 42])
     plt.xlim([0, 55])
     # plt.title("CONVERGENCE scenario comparison")
