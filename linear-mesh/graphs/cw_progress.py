@@ -11,7 +11,7 @@ n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.5, 0.8,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 #%%
-comet_api = API("hLbeXrPuj2u7JD6QGop7Yrtek")
+comet_api = API("haQ9dJrZ4oZHhZhX8O7JJ2AJ5")
 
 def extract_values(experiment_key):
     res = comet_api.get(f"wwydmanski/rl-in-wifi/{experiment_key}")
