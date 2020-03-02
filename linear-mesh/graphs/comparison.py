@@ -40,16 +40,14 @@ def plot(scenario):
 
     DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
     DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
-    # DDPG_yerr = df[df['algorithm']=='ddpg'].groupby('count').std()*3
-    # DQN_yerr = df[df['algorithm']=='dqn'].groupby('count').std()*3
-    
+    zero_err = pd.DataFrame(data={"speed": [0, 0, 0, 0]})
     plt.figure(figsize=(6.4, 4.8))
 
-    plt.plot(RANGE, BEB, '.-', label="Standard 802.11", marker="s", markersize=6)
-    plt.plot(RANGE, STATIC, '.-', label="Look-up table",markersize=10)
+    plt.errorbar(RANGE, BEB, fmt='.-', label="Standard 802.11", marker="s", markersize=6, yerr=[0, 0, 0, 0])
+    plt.errorbar(RANGE, STATIC.values, fmt='.-', label="Look-up table", markersize=10, yerr=[0, 0, 0, 0])
     DQN.plot(fmt='.-', label="CCOD w/ DQN", marker="v",markersize=6, yerr=DQN_yerr, ax=plt.gca())
     DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
-    
+    print(STATIC)
     # plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
     # plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
