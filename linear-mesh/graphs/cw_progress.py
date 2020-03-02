@@ -46,7 +46,7 @@ def get_metrics(experiments):
     intervals = (lower, upper)
     return mean, intervals
 
-plt.figure(figsize=(6.4, 4.8))
+plt.figure(figsize=(6.4, 4.8),dpi=100)
 
 means, yerr = get_metrics(["918819ef9ae14477b2cf0866e35af8f8", "ec240e737d3e472b819c51d49a4d97bf"])
 plt.errorbar(np.arange(len(means))+1, means, yerr, fmt='.-', label="CCOD w/ DQN", marker="v", markersize=6, capsize=2)
@@ -58,6 +58,7 @@ plt.xlabel("Round")
 plt.ylabel("Mean CW")
 plt.legend()
 plt.xticks(np.arange(1, 16, 1.0))
-plt.savefig('cw_vs_rounds.pdf', bbox_inches='tight')
+plt.tight_layout()
+plt.savefig('cw_vs_rounds.pdf')
 # plt.ylim([0, 600])
 plt.show()

@@ -42,7 +42,7 @@ def plot(scenario):
     DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
     DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
 
-    plt.figure(figsize=(6.4, 4.8))
+    plt.figure(figsize=(6.4, 4.8),dpi=100)
 
     plt.errorbar(RANGE, BEB, fmt='.-', label="Standard 802.11", marker="s", markersize=6, yerr=[0, 0, 0, 0])
     plt.errorbar(RANGE, STATIC.values, fmt='.-', label="Look-up table", markersize=10, yerr=[0, 0, 0, 0])
@@ -58,7 +58,8 @@ def plot(scenario):
     plt.xlim([0, 55])
     # plt.title("CONVERGENCE scenario comparison")
     plt.legend(["Standard 802.11", "Look-up table", "CCOD w/ DQN", "CCOD w/ DDPG"], loc=3)
-    plt.savefig(scenario+'.pdf', bbox_inches='tight');
+    plt.tight_layout()
+    plt.savefig(scenario+'.pdf');
     plt.show()
 
 plot('basic')
