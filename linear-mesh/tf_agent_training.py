@@ -30,7 +30,7 @@ sim_args = {
     "historyLength": history_length,
     "agentType": Agent.TYPE,
     "scenario": "convergence",
-    "nWifi": 30,
+    "nWifi": 15,
 }
 
 print("Steps per episode:", steps_per_ep)
