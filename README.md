@@ -2,7 +2,7 @@
 Code for upcoming research publication.
 
 ## Prerequisites
-In order to run this code, you must have a working [ns3-gym](https://github.com/tkn-tub/ns3-gym) environment and python 3.6 with installed dependencies.
+In order to run this code, you must have a working [ns3-gym](https://github.com/tkn-tub/ns3-gym) environment and python 3.6 (and above) with installed dependencies.
 
 ## Installation
 Clone the repo so that `linear-mesh` directory lands directly in ns3's `scratch`. 
