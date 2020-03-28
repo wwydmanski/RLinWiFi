@@ -11,7 +11,12 @@ Clone the repo so that `linear-mesh` directory lands directly in ns3's `scratch`
 All basic configuration can be done within the file `linear-mesh/agent_training.py` (DDPG) and `linear-mesh/tf_agent_training.py` (DQN).
 After configuring the scenario, execute python script corresponding to the agent you want to train.
 
-```python3 linear-mesh/agent_training.py```
+```
+python3 linear-mesh/agent_training.py
+```
+```
+python3 linear-mesh/tf_agent_training.py
+```
 
 ## Reading results
 Currently, results can only be saved in a [CometML](https://www.comet.ml) workspace. 
