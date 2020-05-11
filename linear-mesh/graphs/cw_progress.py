@@ -11,7 +11,7 @@ n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.5, 0.8,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 #%%
-comet_api = comet_ml.papi.API("haQ9dJrZ4oZHhZhX8O7JJ2AJ5")
+comet_api = comet_ml.api.API("haQ9dJrZ4oZHhZhX8O7JJ2AJ5")
 
 def extract_values(experiment_key):
     res = comet_api.get(f"wwydmanski/rl-in-wifi/{experiment_key}")
@@ -52,10 +52,10 @@ means, yerr = get_metrics(["918819ef9ae14477b2cf0866e35af8f8", "ec240e737d3e472b
 plt.errorbar(np.arange(len(means))+1, means, yerr, fmt='.-', label="CCOD w/ DQN", marker="v", markersize=6, capsize=2)
 
 means, yerr = get_metrics(["1043a164b186427f9d17b7b45eeb216c", "4f06b6a983764fe2b30cb5f94241d084", "55ee5bb7ca824c96a8336c8192e6fcea", "f4c1d0bfb2f94657bf3128a7c67c495d"])
-plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="v", markersize=6, capsize=2)
+plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="^", markersize=6, capsize=2)
 
 plt.xlabel("Round")
-plt.ylabel("Mean CW")
+plt.ylabel("Mean CW [slots]")
 plt.legend()
 plt.xticks(np.arange(1, 16, 1.0))
 plt.tight_layout()
