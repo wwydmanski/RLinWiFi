@@ -8,6 +8,10 @@ plt.style.use("default")
 plt.rcParams.update({'font.size': 14})
 plt.rcParams.update({'errorbar.capsize': 2})
 
+# Avoid Type 3 fonts
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+
 import cycler
 COEFF = 1.048576
 

@@ -5,6 +5,10 @@ import numpy as np
 
 plt.rcParams.update({'font.size': 14})
 
+# Avoid Type 3 fonts
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+
 import cycler
 n = 3 #number of lines
 color = plt.cm.Blues(np.linspace(0.3, 1.1,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
@@ -77,7 +81,7 @@ plt.xlim([0, 7])
 plt.ylim([26, 42])
 plt.yticks(range(26,44,2))
 
-leg=plt.legend()
+leg=plt.legend(frameon=False)
 # set the linewidth of each legend object
 for legobj in leg.legendHandles:
     legobj.set_linewidth(3.0)

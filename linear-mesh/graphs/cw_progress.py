@@ -6,6 +6,10 @@ import comet_ml.api
 import scipy.stats
 plt.rcParams.update({'font.size': 14})
 
+# Avoid Type 3 fonts
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+
 import cycler
 n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.5, 0.8,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
@@ -56,7 +60,7 @@ plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/
 
 plt.xlabel("Round")
 plt.ylabel("Mean CW [slots]")
-plt.legend()
+plt.legend(frameon=False)
 plt.xticks(np.arange(1, 16, 1.0))
 plt.tight_layout()
 plt.savefig('cw_vs_rounds.pdf')

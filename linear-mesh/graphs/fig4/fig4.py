@@ -5,6 +5,10 @@ import numpy as np
 
 plt.rcParams.update({'font.size': 14})
 
+# Avoid Type 3 fonts
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
+
 import cycler
 n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.4, 0.7,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
@@ -70,7 +74,7 @@ plt.plot(x_dqn, dqn, label="CCOD w/ DQN")
 ax1.plot(x_data, data, label="CCOD w/ DDPG")
 
 ax1.tick_params(axis='y')
-leg=plt.legend(title='CW')
+leg=plt.legend(title='CW', frameon=False)
 # set the linewidth of each legend object
 for legobj in leg.legendHandles:
     legobj.set_linewidth(2.0)
@@ -80,7 +84,7 @@ color = '#000000'
 ax2.set_ylabel('Number of stations', color=color)
 ax2.plot(x_station, stations, color=color, ls='-', label="Number of stations")
 ax2.tick_params(axis='y', labelcolor=color)
-leg=ax2.legend(loc='lower right')
+leg=ax2.legend(loc='lower right', frameon=False)
 # set the linewidth of each legend object
 for legobj in leg.legendHandles:
     legobj.set_linewidth(2.0)
