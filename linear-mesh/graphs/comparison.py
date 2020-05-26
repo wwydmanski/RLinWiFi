@@ -53,11 +53,13 @@ def plot(scenario):
     # plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
     plt.xlabel("Number of stations")
+    if (scenario=='convergence'):
+        plt.xlabel("Final number of stations")
     plt.ylabel("Network throughput [Mb/s]")
     plt.ylim([26, 42])
     plt.xlim([0, 55])
     # plt.title("CONVERGENCE scenario comparison")
-    plt.legend(["Standard 802.11", "Look-up table", "CCOD w/ DQN", "CCOD w/ DDPG"], loc=3)
+    plt.legend(["Standard 802.11", "Look-up table", "CCOD w/ DQN", "CCOD w/ DDPG"], loc=3, frameon=False)
     plt.tight_layout()
     plt.savefig(scenario+'.pdf');
     plt.show()
