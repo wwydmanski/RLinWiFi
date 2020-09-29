@@ -64,6 +64,13 @@ def plot(scenario):
     plt.xlim([0, 55])
     # plt.title("CONVERGENCE scenario comparison")
     plt.legend(["Standard 802.11", "Look-up table", "CCOD w/ DQN", "CCOD w/ DDPG"], loc=3, frameon=False)
+    
+    if (scenario=='basic'):
+        plt.arrow(40,30,0,8,width=0.1,head_width=0.5,fill=False,color='grey')
+        plt.annotate("Improvement\nover 802.11", (41,34),color='grey',fontsize=12)
+    else:
+        plt.arrow(40,34.5,0,3,width=0.1,head_width=0.5,fill=False,color='grey')
+        plt.annotate("Improvement\nover 802.11", (41,36),color='grey',fontsize=12)        
     plt.tight_layout()
     plt.savefig(scenario+'.pdf');
     plt.show()
