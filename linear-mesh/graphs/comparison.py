@@ -6,6 +6,11 @@ import scipy.stats as st
 plt.style.use("default")
 
 plt.rcParams.update({'font.size': 14})
+plt.rcParams.update({'errorbar.capsize': 2})
+
+# Avoid Type 3 fonts
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
 
 import cycler
 COEFF = 1.048576
@@ -40,24 +45,34 @@ def plot(scenario):
 
     DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
     DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
-    zero_err = pd.DataFrame(data={"speed": [0, 0, 0, 0]})
-    plt.figure(figsize=(6.4, 4.8))
+
+    plt.figure(figsize=(6.4, 4.8),dpi=100)
 
     plt.errorbar(RANGE, BEB, fmt='.-', label="Standard 802.11", marker="s", markersize=6, yerr=[0, 0, 0, 0])
     plt.errorbar(RANGE, STATIC.values, fmt='.-', label="Look-up table", markersize=10, yerr=[0, 0, 0, 0])
     DQN.plot(fmt='.-', label="CCOD w/ DQN", marker="v",markersize=6, yerr=DQN_yerr, ax=plt.gca())
     DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
-    print(STATIC)
+
     # plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
     # plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
 
     plt.xlabel("Number of stations")
-    plt.ylabel("Aggregate network throughput [Mb/s]")
+    if (scenario=='convergence'):
+        plt.xlabel("Final number of stations")
+    plt.ylabel("Network throughput [Mb/s]")
     plt.ylim([26, 42])
     plt.xlim([0, 55])
     # plt.title("CONVERGENCE scenario comparison")
-    plt.legend(["Standard 802.11", "Look-up table", "CCOD w/ DQN", "CCOD w/ DDPG"], loc=3)
-    plt.savefig(scenario+'.pdf', bbox_inches='tight');
+    plt.legend(["Standard 802.11", "Look-up table", "CCOD w/ DQN", "CCOD w/ DDPG"], loc=3, frameon=False)
+    
+    if (scenario=='basic'):
+        plt.arrow(40,30,0,8,width=0.1,head_width=0.5,fill=False,color='grey')
+        plt.annotate("Improvement\nover 802.11", (41,34),color='grey',fontsize=12)
+    else:
+        plt.arrow(40,34.5,0,3,width=0.1,head_width=0.5,fill=False,color='grey')
+        plt.annotate("Improvement\nover 802.11", (41,36),color='grey',fontsize=12)        
+    plt.tight_layout()
+    plt.savefig(scenario+'.pdf');
     plt.show()
 
 plot('basic')

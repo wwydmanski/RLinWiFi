@@ -2,16 +2,20 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from comet_ml.api import API
+import comet_ml.api
 import scipy.stats
 plt.rcParams.update({'font.size': 14})
+
+# Avoid Type 3 fonts
+mpl.rcParams['pdf.fonttype'] = 42
+mpl.rcParams['ps.fonttype'] = 42
 
 import cycler
 n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.5, 0.8,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 #%%
-comet_api = API("haQ9dJrZ4oZHhZhX8O7JJ2AJ5")
+comet_api = comet_ml.api.API("haQ9dJrZ4oZHhZhX8O7JJ2AJ5")
 
 def extract_values(experiment_key):
     res = comet_api.get(f"wwydmanski/rl-in-wifi/{experiment_key}")
@@ -46,18 +50,19 @@ def get_metrics(experiments):
     intervals = (lower, upper)
     return mean, intervals
 
-plt.figure(figsize=(6.4, 4.8))
+plt.figure(figsize=(6.4, 4.8),dpi=100)
 
 means, yerr = get_metrics(["918819ef9ae14477b2cf0866e35af8f8", "ec240e737d3e472b819c51d49a4d97bf"])
 plt.errorbar(np.arange(len(means))+1, means, yerr, fmt='.-', label="CCOD w/ DQN", marker="v", markersize=6, capsize=2)
 
 means, yerr = get_metrics(["1043a164b186427f9d17b7b45eeb216c", "4f06b6a983764fe2b30cb5f94241d084", "55ee5bb7ca824c96a8336c8192e6fcea", "f4c1d0bfb2f94657bf3128a7c67c495d"])
-plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="v", markersize=6, capsize=2)
+plt.errorbar(np.arange(len(means))+1, means, yerr=yerr, fmt='.-', label="CCOD w/ DDPG", marker="^", markersize=6, capsize=2)
 
 plt.xlabel("Round")
-plt.ylabel("Mean CW")
-plt.legend()
+plt.ylabel("Mean CW [slots]")
+plt.legend(frameon=False)
 plt.xticks(np.arange(1, 16, 1.0))
-plt.savefig('cw_vs_rounds.pdf', bbox_inches='tight')
+plt.tight_layout()
+plt.savefig('cw_vs_rounds.pdf')
 # plt.ylim([0, 600])
 plt.show()
