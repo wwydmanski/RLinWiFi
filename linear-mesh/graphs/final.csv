@@ -32,11 +32,9 @@ ddpg,basic,30,37.86
 ddpg,basic,30,37.85
 ddpg,basic,30,37.75
 ddpg,basic,30,37.92
-
 ddpg,basic,50,37.86
 ddpg,basic,50,37.79
 ddpg,basic,50,37.75
-
 dqn,convergence,6,38.72
 dqn,convergence,6,38.74
 dqn,convergence,15,38.0
@@ -58,7 +56,6 @@ dqn,basic,30,37.79
 dqn,basic,30,37.79
 dqn,basic,50,37.16
 dqn,basic,50,37.35
-
 static,basic,5,38.93
 static,basic,15,38.0
 static,basic,30,37.85

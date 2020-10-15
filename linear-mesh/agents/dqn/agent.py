@@ -95,6 +95,9 @@ class Agent:
         self.sess.run([tf.local_variables_initializer(),
                        tf.global_variables_initializer()])
 
+    def load(self):
+        pass
+
     def reset_all(self):
         self.sess.close()
         tf.reset_default_graph()

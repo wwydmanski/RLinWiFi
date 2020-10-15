@@ -7,8 +7,6 @@ import subprocess
 from collections import deque
 import numpy as np
 
-# from agents.dqn.agent import Agent, Config
-# from agents.dqn.model import QNetworkTf
 from agents.ddpg.agent import Agent, Config
 from agents.ddpg.model import Actor
 from agents.teacher import Teacher, EnvWrapper

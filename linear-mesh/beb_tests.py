@@ -67,6 +67,7 @@ steps_per_ep = int(simTime/stepTime)
 
 for scenario in ["basic"]:
     nwifi = [5, 15, 30, 50]
+    # nwifi = [50]
     if scenario=="convergence":
         nwifi[0] = 6
     
@@ -101,6 +102,6 @@ for scenario in ["basic"]:
                 *[f"{key}: {sim_args[key]}" for key in list(sim_args)[:3]]]
 
         #%%
-        teacher = Teacher(env, 1, Preprocessor(False))
+        teacher =   Teacher(env, 1, Preprocessor(False))
         agent = Agent(env.action_space)
         logger = teacher.eval(agent, simTime, stepTime, history_length, tags)
