@@ -35,6 +35,7 @@ double simulationTime = 10; //seconds
 double current_time = 0.0;
 bool verbose = false;
 int end_delay = 0;
+bool dry_run = false;
 
 Ptr<FlowMonitor> monitor;
 FlowMonitorHelper flowmon;
@@ -170,8 +171,10 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
 
     CW = min(max_cw, max(CW, min_cw));
 
-    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
-    Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
+    if(!dry_run){
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
+        Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
+    }
     return true;
 }
 
@@ -359,7 +362,7 @@ void set_nodes(int channelWidth, int rng, int32_t simSeed, NodeContainer wifiSta
     staNodeInterface = address.Assign(staDevice);
     apNodeInterface = address.Assign(apDevice);
 
-    if (CW)
+    if (!dry_run)
     {
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MaxCw", UintegerValue(CW));
@@ -392,16 +395,16 @@ void set_sim(bool tracing, bool dry_run, int warmup, uint32_t openGymPort, YansW
     openGymInterface->SetGetExtraInfoCb(MakeCallback(&MyGetExtraInfo));
     openGymInterface->SetExecuteActionsCb(MakeCallback(&MyExecuteActions));
 
-    if (!dry_run)
+    // if (!dry_run)
+    // {
+    if (non_zero_start)
     {
-        if (non_zero_start)
-        {
-            Simulator::Schedule(Seconds(1.0), &recordHistory);
-            Simulator::Schedule(Seconds(envStepTime * history_length + 1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
-        }
-        else
-            Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+        Simulator::Schedule(Seconds(1.0), &recordHistory);
+        Simulator::Schedule(Seconds(envStepTime * history_length + 1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
     }
+    else
+        Simulator::Schedule(Seconds(1.0), &ScheduleNextStateRead, envStepTime, openGymInterface);
+    // }
 
     Simulator::Stop(Seconds(simulationTime + end_delay + 1.0 + envStepTime*(history_length+1)));
 
@@ -427,7 +430,7 @@ int main(int argc, char *argv[])
     int port = 1025;
     string outputCsv = "cw.csv";
     string scenario = "basic";
-    bool dry_run = false;
+    dry_run = false;
 
     int rng = 1;
     int warmup = 1;
@@ -512,13 +515,13 @@ int main(int argc, char *argv[])
     ScenarioFactory helper = ScenarioFactory(nWifi, wifiStaNode, wifiApNode, port, offeredLoad, history_length);
     wifiScenario = helper.getScenario(scenario);
 
-    if (!dry_run)
-    {
-        if (non_zero_start)
-            end_delay = envStepTime * history_length + 1.0;
-        else
-            end_delay = 0.0;
-    }
+    // if (!dry_run)
+    // {
+    if (non_zero_start)
+        end_delay = envStepTime * history_length + 1.0;
+    else
+        end_delay = 0.0;
+    // }
 
     wifiScenario->installScenario(simulationTime + end_delay + envStepTime, envStepTime, MakeCallback(&packetReceived));
 

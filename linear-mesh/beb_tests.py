@@ -7,8 +7,33 @@ import subprocess
 from collections import deque
 import numpy as np
 from preprocessor import Preprocessor
+import sys
+import argparse
 
 from agents.teacher import Teacher, EnvWrapper
+
+parser = argparse.ArgumentParser(description='Run BEB tests')
+parser.add_argument('stations', metavar='N', type=int, nargs='+',
+                   help='number of stations for the scenario (min: 5)')
+parser.add_argument('--scenario', dest='scenarios', type=str, nargs='+',
+                   help='scenarios to run (available: [basic, convergence])')
+parser.add_argument('--beb', dest='beb', action='store_const',
+                   const=True, default=False,
+                   help='run 802.11 default instead of look-up table')
+
+args = parser.parse_args()
+for sc in args.scenarios:
+    if sc != "basic" and sc!="convergence":
+        print("Wrong scenario!")
+        parser.print_help()
+        sys.exit()
+
+print("Stations count:", args.stations)
+print("Scenarios:", args.scenarios)
+if args.beb:
+    print("802.11 default")
+else:
+    print("Look-up table")
 
 class Agent:
     TYPE = "continuous"
@@ -65,11 +90,13 @@ history_length = 300
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
 
-for scenario in ["basic"]:
-    nwifi = [5, 15, 30, 50]
-    # nwifi = [50]
+
+
+for scenario in args.scenarios:
+    nwifi = args.stations
     if scenario=="convergence":
-        nwifi[0] = 6
+        if nwifi[0] == 5:
+            nwifi[0] = 6
     
     for nw in nwifi:
         sim_args = {
@@ -80,6 +107,9 @@ for scenario in ["basic"]:
             "scenario": scenario,
             "nWifi": nw
         }
+        if args.beb:
+            sim_args["dryRun"] = True
+
         print("Steps per episode:", steps_per_ep)
 
         threads_no = 1
