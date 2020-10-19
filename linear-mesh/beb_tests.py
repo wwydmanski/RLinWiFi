@@ -90,8 +90,12 @@ history_length = 300
 EPISODE_COUNT = 1
 steps_per_ep = int(simTime/stepTime)
 
+if args.beb:
+    agent_name = "BEB"
+else:
+    agent_name = Agent.NAME
 
-
+rng = 0
 for scenario in args.scenarios:
     nwifi = args.stations
     if scenario=="convergence":
@@ -105,8 +109,11 @@ for scenario in args.scenarios:
             "historyLength": history_length,
             "agentType": Agent.TYPE,
             "scenario": scenario,
-            "nWifi": nw
+            "nWifi": nw,
+            "seed": np.random.randint(2**16),
+            "rng": rng
         }
+        rng += 1
         if args.beb:
             sim_args["dryRun"] = True
 
@@ -125,7 +132,7 @@ for scenario in args.scenarios:
 
         assert ob_space is not None
 
-        tags = [f"{Agent.NAME}", 
+        tags = [f"{agent_name}", 
                 "Final",
                 sim_args['scenario'],
                 f"Station count: {sim_args['nWifi']}",

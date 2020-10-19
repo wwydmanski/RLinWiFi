@@ -454,6 +454,7 @@ int main(int argc, char *argv[])
     cmd.AddValue("nonZeroStart", "Start only after history buffer is filled", non_zero_start);
     cmd.AddValue("scenario", "Scenario for analysis: basic, convergence, reaction", scenario);
     cmd.AddValue("dryRun", "Execute scenario with BEB and no agent interaction", dry_run);
+    cmd.AddValue("seed", "Random seed", simSeed);
 
     cmd.Parse(argc, argv);
     // history_length*=2;
