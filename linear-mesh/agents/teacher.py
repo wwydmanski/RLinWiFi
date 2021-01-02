@@ -3,10 +3,14 @@ import tqdm
 import subprocess
 from comet_ml import Experiment
 from ns3gym import ns3env
+from ns3gym.start_sim import find_waf_path
+
 import matplotlib.pyplot as plt
 from collections import deque
 import time
-
+import json
+import os 
+import glob
 
 
 class Logger:
@@ -15,8 +19,11 @@ class Logger:
         self.send_logs = send_logs
         if self.send_logs:
             if experiment is None:
-                self.experiment = Experiment(api_key="OZwyhJHyqzPZgHEpDFL1zxhyI",
-                                project_name="rl-in-wifi", workspace="wwydmanski")
+                json_loc = glob.glob("./**/comet_token.json")[0]
+                with open(json_loc, "r") as f:
+                    kwargs = json.load(f)
+
+                self.experiment = Experiment(**kwargs)
             else:
                 self.experiment = experiment
         self.sent_mb = 0
@@ -188,6 +195,7 @@ class Teacher:
         time_offset = history_length//obs_dim*stepTime
 
         for i in range(EPISODE_COUNT):
+            print(i)
             try:
                 self.env.run()
             except AlreadyRunningException as e:
@@ -274,7 +282,8 @@ class EnvWrapper:
         self.SCRIPT_RUNNING = True
 
     def _craft_commands(self, params):
-        command = '../../waf --run "linear-mesh'
+        waf_pwd = find_waf_path("./")
+        command = f'{waf_pwd} --run "linear-mesh'
         for key, val in params.items():
             command+=f" --{key}={val}"
 
@@ -305,12 +314,12 @@ class EnvWrapper:
 
     @property
     def observation_space(self):
-        dim = repr(self.envs[0].observation_space).replace('Box(', '').replace(',)', '')
+        dim = repr(self.envs[0].observation_space).replace('(', '').replace(',)', '').split(", ")[2]
         return (self.no_threads, int(dim))
 
     @property
     def action_space(self):
-        dim = repr(self.envs[0].action_space).replace('Box(', '').replace(',)', '')
+        dim = repr(self.envs[0].action_space).replace('(', '').replace(',)', '').split(", ")[2]
         return (self.no_threads, int(dim))
 
     def close(self):

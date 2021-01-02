@@ -38,20 +38,35 @@ def plot(scenario):
         RANGE = [6, 15, 30, 50]
 
     df = pd.read_csv("final.csv")
+    BEB_df = pd.read_csv("static.csv")
+    for i, nwifi in enumerate(RANGE):
+        filt = BEB_df["count"]==nwifi
+
+        weird = BEB_df[filt].values[0][-1]
+        coeff = BEB[i]/weird
+
+        BEB_df.loc[np.where([filt])[1], "Thr"] = BEB_df[filt]["Thr"]*coeff
+
+    print(BEB_df)
     df = df[df['type']==scenario]
+    
     DDPG = df[df['algorithm']=='ddpg'].groupby('count').mean()*COEFF
     DQN = df[df['algorithm']=='dqn'].groupby('count').mean()*COEFF
     STATIC = df[df['algorithm']=='static'].groupby('count').mean()*COEFF
+    BEB_m = BEB_df.groupby("count").mean()
 
     DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
+    BEB_yerr = _get_yerr(BEB_df[["count", "Thr"]])
     DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
 
     plt.figure(figsize=(6.4, 4.8),dpi=100)
 
-    plt.errorbar(RANGE, BEB, fmt='.-', label="Standard 802.11", marker="s", markersize=6, yerr=[0, 0, 0, 0])
+    # plt.errorbar(RANGE, BEB, fmt='.-', label="Standard 802.11", marker="s", markersize=6, yerr=[0, 0, 0, 0])
     plt.errorbar(RANGE, STATIC.values, fmt='.-', label="Look-up table", markersize=10, yerr=[0, 0, 0, 0])
     DQN.plot(fmt='.-', label="CCOD w/ DQN", marker="v",markersize=6, yerr=DQN_yerr, ax=plt.gca())
     DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
+    DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
+    BEB_m.plot(fmt='.-', label='Standard 802.11', marker="^",markersize=6, yerr=BEB_yerr, ax=plt.gca())
 
     # plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)
     # plt.plot(RANGE, DDPG, '.-', label="CCOD w/ DDPG", marker="^",markersize=6)
