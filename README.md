@@ -59,3 +59,17 @@ Currently, results can only be saved in a [CometML](https://www.comet.ml) worksp
 
 Example results for an experiment:
 ![](https://i.imgur.com/g8hiAz9.png)
+
+## Referencing
+You can cite this code as 
+
+```
+@misc{wydmański2021contention,
+      title={Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning}, 
+      author={Witold Wydmański and Szymon Szott},
+      year={2021},
+      eprint={2003.01492},
+      archivePrefix={arXiv},
+      primaryClass={cs.NI}
+}
+```
