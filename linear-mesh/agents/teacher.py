@@ -19,9 +19,16 @@ class Logger:
         self.send_logs = send_logs
         if self.send_logs:
             if experiment is None:
-                json_loc = glob.glob("./**/comet_token.json")[0]
-                with open(json_loc, "r") as f:
-                    kwargs = json.load(f)
+                try:
+                    json_loc = glob.glob("./**/comet_token.json")[0]
+                    with open(json_loc, "r") as f:
+                        kwargs = json.load(f)
+                except IndexError:
+                    kwargs = {
+                        "api_key": "XXXXXXXXXXXX",
+                        "project_name": "rl-in-wifi",
+                        "workspace": "XYZ"
+                    }
 
                 self.experiment = Experiment(**kwargs)
             else:
