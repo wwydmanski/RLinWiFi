@@ -45,18 +45,18 @@ def plot(scenario):
         weird = BEB_df[filt].values[0][-1]
         coeff = BEB[i]/weird
 
-        BEB_df.loc[np.where([filt])[1], "Thr"] = BEB_df[filt]["Thr"]*coeff
+        BEB_df.loc[np.where([filt])[1], "Thr"] = BEB_df[filt]["Thr"]
 
-    print(BEB_df)
     df = df[df['type']==scenario]
     
     DDPG = df[df['algorithm']=='ddpg'].groupby('count').mean()*COEFF
     DQN = df[df['algorithm']=='dqn'].groupby('count').mean()*COEFF
     STATIC = df[df['algorithm']=='static'].groupby('count').mean()*COEFF
-    BEB_m = BEB_df.groupby("count").mean()
+    BEB_m = BEB_df.groupby(["count", "RngRun"]).sum().groupby('count').mean()
+    print(BEB_m)
 
     DDPG_yerr = _get_yerr(df[df['algorithm']=='ddpg'])
-    BEB_yerr = _get_yerr(BEB_df[["count", "Thr"]])
+    BEB_yerr = _get_yerr(BEB_df.groupby(["count", "RngRun"]).sum())
     DQN_yerr = _get_yerr(df[df['algorithm']=='dqn'])
 
     plt.figure(figsize=(6.4, 4.8),dpi=100)
@@ -65,7 +65,7 @@ def plot(scenario):
     plt.errorbar(RANGE, STATIC.values, fmt='.-', label="Look-up table", markersize=10, yerr=[0, 0, 0, 0])
     DQN.plot(fmt='.-', label="CCOD w/ DQN", marker="v",markersize=6, yerr=DQN_yerr, ax=plt.gca())
     DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
-    DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
+    # DDPG.plot(fmt='.-', label='CCOD w/ DDPG', marker="^",markersize=6, yerr=DDPG_yerr, ax=plt.gca())
     BEB_m.plot(fmt='.-', label='Standard 802.11', marker="^",markersize=6, yerr=BEB_yerr, ax=plt.gca())
 
     # plt.plot(RANGE[:len(DQN)], DQN, '.-', label="CCOD w/ DQN", marker="v",markersize=6)

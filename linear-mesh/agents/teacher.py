@@ -289,7 +289,13 @@ class EnvWrapper:
         self.SCRIPT_RUNNING = True
 
     def _craft_commands(self, params):
-        waf_pwd = find_waf_path("./")
+        try:
+            waf_pwd = find_waf_path("./")
+        except FileNotFoundError:
+            import sys
+            sys.path.append("../../")
+            waf_pwd = find_waf_path("../../")
+
         command = f'{waf_pwd} --run "linear-mesh'
         for key, val in params.items():
             command+=f" --{key}={val}"

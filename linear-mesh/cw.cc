@@ -39,22 +39,24 @@ bool dry_run = false;
 
 Ptr<FlowMonitor> monitor;
 FlowMonitorHelper flowmon;
+ofstream outfile ("scratch/linear-mesh/CW_data.csv", fstream::out);
 
 uint32_t CW = 0;
+
+// Our data structure for the scenario needs to be a vector of [history_length, 2]
 uint32_t history_length = 20;
+deque<float> history;
+
 string type = "discrete";
 bool non_zero_start = false;
 Scenario *wifiScenario;
 
-deque<float> history;
 
 /*
 Define observation space
 */
 Ptr<OpenGymSpace> MyGetObservationSpace(void)
 {
-    current_time += envStepTime;
-
     float low = 0.0;
     float high = 10.0;
     std::vector<uint32_t> shape = {
@@ -170,6 +172,7 @@ bool MyExecuteActions(Ptr<OpenGymDataContainer> action)
     uint32_t max_cw = 1024;
 
     CW = min(max_cw, max(CW, min_cw));
+    outfile << current_time << "," << CW << endl;
 
     if(!dry_run){
         Config::Set("/$ns3::NodeListPriv/NodeList/*/$ns3::Node/DeviceList/*/$ns3::WifiNetDevice/Mac/$ns3::RegularWifiMac/BE_Txop/$ns3::QosTxop/MinCw", UintegerValue(CW));
@@ -238,37 +241,41 @@ bool MyGetGameOver(void)
 
 void ScheduleNextStateRead(double envStepTime, Ptr<OpenGymInterface> openGymInterface)
 {
-    // if(ns3::Simulator::Now().GetSeconds()<simulationTime + end_delay + 1.0)
-    // {
     Simulator::Schedule(Seconds(envStepTime), &ScheduleNextStateRead, envStepTime, openGymInterface);
-    // }
     openGymInterface->NotifyCurrentState();
 }
 
 void recordHistory()
 {
-    static uint32_t last_rx = 0;
-    static uint32_t last_tx = 0;
-    static uint32_t calls = 0;
+    // Keep track of the observations
+    // We will define them as the error rate of the last `envStepTime` seconds
+    static uint32_t last_rx = 0;            // Previously received packets
+    static uint32_t last_tx = 0;            // Previously transmitted packets
+    static uint32_t calls = 0;              // Number of calls to this function
     calls++;
+    current_time += envStepTime;
 
-    float received = g_rxPktNum - last_rx;
-    float sent = g_txPktNum - last_tx;
-    float errs = sent - received;
+    float received = g_rxPktNum - last_rx;  // Received packets since the last observation
+    float sent = g_txPktNum - last_tx;      // Sent (...)
+    float errs = sent - received;           // Errors (...)
     float ratio;
 
     ratio = errs / sent;
     history.push_front(ratio);
 
+    // Remove the oldest observation if we have filled the history
     if (history.size() > history_length)
     {
         history.pop_back();
     }
+
+    // Replace the last observation with the current one
     last_rx = g_rxPktNum;
     last_tx = g_txPktNum;
 
     if (calls < history_length && non_zero_start)
-    {
+    {   
+        // Schedule the next observation if we are not at the end of the simulation
         Simulator::Schedule(Seconds(envStepTime), &recordHistory);
     }
     else if (calls == history_length && non_zero_start)
@@ -313,6 +320,7 @@ void set_phy(int nWifi, int guardInterval, NodeContainer &wifiStaNode, NodeConta
 
 void set_nodes(int channelWidth, int rng, int32_t simSeed, NodeContainer wifiStaNode, NodeContainer wifiApNode, YansWifiPhyHelper phy, WifiMacHelper mac, WifiHelper wifi, NetDeviceContainer &apDevice)
 {
+    // Set the access point details
     Ssid ssid = Ssid("ns3-80211ax");
 
     mac.SetType("ns3::StaWifiMac",
@@ -439,6 +447,7 @@ int main(int argc, char *argv[])
     int32_t simSeed = -1;
 
     signal(SIGTERM, signalHandler);
+    outfile << "SimulationTime,CW" << endl;
 
     CommandLine cmd;
     cmd.AddValue("openGymPort", "Specify port number. Default: 5555", openGymPort);
