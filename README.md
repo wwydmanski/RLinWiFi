@@ -14,12 +14,31 @@ You also require a free ![CometML](https://www.comet.ml/signup) account for view
 Clone the repo so that `linear-mesh` directory lands directly in ns3's `scratch`. 
 
 ## Execution
-All basic configuration can be done within the file `linear-mesh/agent_training.py` (DDPG) and `linear-mesh/tf_agent_training.py` (DQN).
-After configuring the scenario, execute python script corresponding to the agent you want to train from the directory containing `wscript` file.
+All basic configuration of the agents can be done within the file `linear-mesh/agent_training.py` (DDPG) and `linear-mesh/tf_agent_training.py` (DQN).
+
+Benchmark of the static CW values and the original 802.11 backoff algorithm can be set up using `linear-mesh/beb.py` file:
 
 ```
-python scratch/linear-mesh/agent_training.py
-python scratch/linear-mesh/tf_agent_training.py
+usage: beb_tests.py [-h] [--scenario SCENARIOS [SCENARIOS ...]] [--beb]
+                    N [N ...]
+
+Run BEB tests
+
+positional arguments:
+  N                     number of stations for the scenario (min: 5)
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --scenario SCENARIOS [SCENARIOS ...]
+                        scenarios to run (available: [basic, convergence])
+  --beb                 run 802.11 default instead of look-up table
+```
+
+Example:
+```bash
+python agent_training.py                                          # DDPG agent
+python tf_agent_training.py                                       # DQN agent
+python beb_tests.py --beb 5 10 15 --scenario basic convergence    # Original 802.11 backoff
 ```
 
 Expected output:
