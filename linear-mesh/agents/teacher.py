@@ -159,8 +159,8 @@ class Teacher:
         with tqdm.trange(steps_per_ep) as t:
             for step in t:
                 self.debug = obs
-                self.actions = agent.act(np.array(logger.stations, dtype=np.float32), add_noise)
-                # self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
+                # self.actions = agent.act(np.array(logger.stations, dtype=np.float32), add_noise)
+                self.actions = agent.act(np.array(obs, dtype=np.float32), add_noise)
                 next_obs, reward, done, info = self.env.step(self.actions)
 
                 next_obs = self.preprocess(np.reshape(next_obs, (-1, len(self.env.envs), obs_dim)))

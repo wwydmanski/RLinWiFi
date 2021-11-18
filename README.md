@@ -6,7 +6,7 @@ In order to run this code you need python 3.6 (tensorflow dependency) with insta
 ```
 conda env create -f environment.yaml
 ```
-After creating the conda env, you **need a working [ns3-gym](https://github.com/tkn-tub/ns3-gym) environment.**
+After creating the conda env, **you need a working [ns3-gym](https://github.com/tkn-tub/ns3-gym) environment.** Ns3Gym python package is a part of a larger framework, so installing it on its own is, unfortunately, not enough.
 
 You also require a free ![CometML](https://www.comet.ml/signup) account for viewing the graphs. After creating it update the `comet_token.json` file with your credentials.
 
@@ -78,3 +78,17 @@ Currently, results can only be saved in a [CometML](https://www.comet.ml) worksp
 
 Example results for an experiment:
 ![](https://i.imgur.com/g8hiAz9.png)
+
+## Referencing
+You can cite this code as 
+
+```
+@misc{wydmański2021contention,
+      title={Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning}, 
+      author={Witold Wydmański and Szymon Szott},
+      year={2021},
+      eprint={2003.01492},
+      archivePrefix={arXiv},
+      primaryClass={cs.NI}
+}
+```
