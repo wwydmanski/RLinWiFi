@@ -1,4 +1,4 @@
-name: rlinwifi-test
+name: rlinwifi
 channels:
   - defaults
 dependencies:
@@ -73,4 +73,4 @@ dependencies:
     - wrapt==1.12.1
     - wurlitzer==2.0.1
     - zipp==3.4.0
-prefix: ./envs/rlinwifi-test
+prefix: ./envs/rlinwifi
