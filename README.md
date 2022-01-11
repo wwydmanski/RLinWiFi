@@ -83,12 +83,14 @@ Example results for an experiment:
 You can cite this code as 
 
 ```
-@misc{wydmański2021contention,
-      title={Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning}, 
-      author={Witold Wydmański and Szymon Szott},
-      year={2021},
-      eprint={2003.01492},
-      archivePrefix={arXiv},
-      primaryClass={cs.NI}
-}
+@INPROCEEDINGS{9417575,
+  author={Wydmański, Witold and Szott, Szymon},
+  booktitle={2021 IEEE Wireless Communications and Networking Conference (WCNC)}, 
+  title={Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={1-6},
+  doi={10.1109/WCNC49053.2021.9417575}}
+
 ```
