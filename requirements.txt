@@ -2,5 +2,5 @@ tqdm==4.35.0
 torch==0.4.1
 torchvision==0.2.1
 tensorflow==1.14.0
-numpy==1.16.3
+numpy==1.22.0
 comet-ml==2.0.12
