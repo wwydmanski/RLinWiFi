@@ -226,8 +226,12 @@ class Agent:
         torch.save(self.critic_local.state_dict(), "models/ddpg_critic.torch")
 
     def load(self):
-        self.actor_local.load_state_dict(torch.load("models/ddpg_actor_15_convergence.torch"))
-        self.critic_local.load_state_dict(torch.load("models/ddpg_critic_15_convergence.torch"))
+        try:
+            self.actor_local.load_state_dict(torch.load("models/ddpg_actor_15_convergence.torch"))
+            self.critic_local.load_state_dict(torch.load("models/ddpg_critic_15_convergence.torch"))
+        except RuntimeError:
+            self.actor_local.load_state_dict(torch.load("models/ddpg_actor_15_convergence.torch", map_location='cpu'))
+            self.critic_local.load_state_dict(torch.load("models/ddpg_critic_15_convergence.torch", map_location='cpu'))            
 
 class NormalNoise:
     def __init__(self, size, seed, mu=0., sigma=0.2, theta=0.6):
