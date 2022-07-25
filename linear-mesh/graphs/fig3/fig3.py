@@ -15,7 +15,7 @@ color = plt.cm.Blues(np.linspace(0.3, 1.1,n)) #gnuplot - Blues name, linspace pa
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
 
 def svg_to_data_conv(svg, a, b, thresh=0):
-    bs = BeautifulSoup(f)
+    bs = BeautifulSoup(svg, 'xml')
     num = -1
     for en, i in enumerate(bs.find_all("path")):
         if "js-line" in i["class"]:
