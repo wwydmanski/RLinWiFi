@@ -3,6 +3,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import comet_ml.api
+import comet_ml
 import scipy.stats
 plt.rcParams.update({'font.size': 14})
 
@@ -14,11 +15,16 @@ import cycler
 n = 2 #number of lines
 color = plt.cm.Blues(np.linspace(0.5, 0.8,n)) #gnuplot - Blues name, linspace parameters determine the boundaries of the color
 mpl.rcParams['axes.prop_cycle'] = cycler.cycler('color', color)
+
+WORKSPACE = "wwydmanski"
+PROJECT_NAME = "rl-in-wifi"
+API_KEY = "API_KEY"
+
 #%%
-comet_api = comet_ml.api.API("haQ9dJrZ4oZHhZhX8O7JJ2AJ5")
+comet_api = comet_ml.api.API(API_KEY, API_KEY)
 
 def extract_values(experiment_key):
-    res = comet_api.get(f"wwydmanski/rl-in-wifi/{experiment_key}")
+    res = comet_api.get(f"{WORKSPACE}/{PROJECT_NAME}/{experiment_key}")
     res = res.get_metrics("Chosen CW")
     values = np.array([float(i['metricValue']) for i in res], dtype=np.float)
     steps = np.array([i['step'] for i in res], dtype=np.float)
