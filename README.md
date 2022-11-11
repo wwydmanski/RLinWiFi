@@ -74,9 +74,9 @@ COMET INFO: Experiment is live on comet.ml https://www.comet.ml/XYZ/rl-in-wifi/3
 ```
 
 ## Reading results
-Currently, results can only be saved in a [CometML](https://www.comet.ml) workspace. 
+The script saves results of the run in `logs/` directory.
 
-Example results for an experiment:
+Example graphs of an experiment:
 ![](https://i.imgur.com/g8hiAz9.png)
 
 ## Referencing
