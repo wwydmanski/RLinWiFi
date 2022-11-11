@@ -1,5 +1,7 @@
 # RLinWiFi
-Code for "Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning" article published at WCNC 2021. Preprint available at Arxiv - https://arxiv.org/pdf/2003.01492
+Code for "Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning" article published at WCNC 2021. Preprint available at Arxiv - https://arxiv.org/pdf/2003.01492.
+
+The main focus of this work is exploiting a reinforcement learning agent for maximizing WiFi's throughput.
 
 ## Prerequisites
 In order to run this code you need python 3.6 (tensorflow dependency) with installed dependencies:
