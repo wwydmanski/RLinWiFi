@@ -8,7 +8,6 @@ conda env create -f environment.yaml
 ```
 After creating the conda env, and installing ns-3.29 **you need a working [ns3-gym](https://github.com/tkn-tub/ns3-gym) environment.** Ns3Gym python package is a part of a larger framework, so installing it on its own is, unfortunately, not enough.
 
-You also require a free ![CometML](https://www.comet.ml/signup) account for viewing the graphs. After creating it update the `comet_token.json` file with your credentials.
 
 ## Installation
 Clone the repo so that `linear-mesh` directory lands directly in ns3's `scratch`. 
@@ -67,7 +66,6 @@ Observation space shape: (1, 300)
 Action space shape: (1, 1)
 CuDNN version: 7102
 cpu
-COMET INFO: Experiment is live on comet.ml https://www.comet.ml/XYZ/rl-in-wifi/3ea81647b4a9413182384b646bcef47f
 
 0
   3%|▎         | 182/6300 [00:16<09:22, 10.88it/s, curr_speed=0.00 Mbps, mb_sent=0.00 Mb]
