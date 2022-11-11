@@ -1,5 +1,9 @@
 # RLinWiFi
-Code for "Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning" article published at WCNC 2021. Preprint available at Arxiv - https://arxiv.org/pdf/2003.01492.
+Code for the following research article:
+
+> W. Wydmański and S. Szott, "[Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning](https://ieeexplore.ieee.org/document/9417575)," 2021 IEEE Wireless Communications and Networking Conference (WCNC), 2021, doi: 10.1109/WCNC49053.2021.9417575.
+
+Preprint available on [Arxiv](https://arxiv.org/pdf/2003.01492).
 
 The main focus of this work is exploiting a reinforcement learning agent for maximizing WiFi's throughput.
 
@@ -83,7 +87,7 @@ Example graphs of an experiment:
 You can cite this code as 
 
 ```
-@INPROCEEDINGS{9417575,
+@INPROCEEDINGS{wydmanski2021contention,
   author={Wydmański, Witold and Szott, Szymon},
   booktitle={2021 IEEE Wireless Communications and Networking Conference (WCNC)}, 
   title={Contention Window Optimization in IEEE 802.11ax Networks with Deep Reinforcement Learning}, 
